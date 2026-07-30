@@ -34,9 +34,15 @@ class QueueService
         try {
             Database::begin();
 
+            // --- LÓGICA DE RESET DIÁRIO (V5.1) ---
+            // Buscamos a última senha do serviço emitida HOJE
+            $hoje = date('Y-m-d');
             $ultima = Database::fetch(
-                "SELECT numero FROM senhas WHERE servico_id = ? ORDER BY numero DESC LIMIT 1",
-                [$servicoId]
+                "SELECT numero FROM senhas
+                 WHERE servico_id = ?
+                 AND date(created_at) = ?
+                 ORDER BY numero DESC LIMIT 1",
+                [$servicoId, $hoje]
             );
 
             $numero = $ultima ? ((int)$ultima['numero']) + 1 : 1;
@@ -111,9 +117,11 @@ class QueueService
                 $senha = Database::fetch(
                     "SELECT s.* FROM senhas s
                      JOIN guiche_servicos gs ON s.servico_id = gs.servico_id
-                     WHERE s.status = 'AGUARDANDO' AND gs.guiche_id = ?
+                     WHERE s.status = 'AGUARDANDO'
+                     AND gs.guiche_id = ?
+                     AND date(s.created_at) = ?
                      ORDER BY s.id LIMIT 1",
-                    [$guicheIdFinal]
+                    [$guicheIdFinal, date('Y-m-d')]
                 );
             } else {
                 $servicoId = (int)$param1;
@@ -122,8 +130,12 @@ class QueueService
                 $guicheCodigoLogico = $guicheInfo ? $guicheInfo['codigo'] : (string)$guicheIdFinal;
 
                 $senha = Database::fetch(
-                    "SELECT * FROM senhas WHERE status = 'AGUARDANDO' AND servico_id = ? ORDER BY id LIMIT 1",
-                    [$servicoId]
+                    "SELECT * FROM senhas
+                     WHERE status = 'AGUARDANDO'
+                     AND servico_id = ?
+                     AND date(created_at) = ?
+                     ORDER BY id LIMIT 1",
+                    [$servicoId, date('Y-m-d')]
                 );
             }
 
@@ -255,24 +267,29 @@ class QueueService
 
     public function getHistoricoChamadas(int $limit = 5): array
     {
+        $hoje = date('Y-m-d');
         return Database::fetchAll(
             "SELECT COALESCE(s.codigo, s.senha) as senha, g.nome as guiche_nome
              FROM senhas s
              LEFT JOIN guiches g ON g.id = s.guiche_id
              WHERE s.status IN ('CHAMANDO', 'FINALIZADA')
+             AND date(s.created_at) = ?
              ORDER BY s.chamada_em DESC, s.id DESC
              LIMIT ?",
-            [$limit]
+            [$hoje, $limit]
         );
     }
 
     public function estatisticas(): array
     {
+        $hoje = date('Y-m-d');
+        $where = " WHERE date(created_at) = '$hoje'";
+
         return [
-            'emitidas' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas")['total'],
-            'pendentes' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas WHERE status = 'AGUARDANDO'")['total'],
-            'atendimento' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas WHERE status = 'CHAMANDO'")['total'],
-            'finalizadas' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas WHERE status = 'FINALIZADA'")['total']
+            'emitidas' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas" . $where)['total'],
+            'pendentes' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas" . $where . " AND status = 'AGUARDANDO'")['total'],
+            'atendimento' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas" . $where . " AND status = 'CHAMANDO'")['total'],
+            'finalizadas' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas" . $where . " AND status = 'FINALIZADA'")['total']
         ];
     }
 }
