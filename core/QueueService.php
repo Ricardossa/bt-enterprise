@@ -210,9 +210,11 @@ class QueueService
                  FROM senhas s
                  JOIN servicos sv ON s.servico_id = sv.id
                  JOIN guiche_servicos gs ON s.servico_id = gs.servico_id
-                 WHERE s.status='AGUARDANDO' AND gs.guiche_id = ?
+                 WHERE s.status='AGUARDANDO'
+                 AND gs.guiche_id = ?
+                 AND date(s.created_at) = ?
                  ORDER BY s.id",
-                [$guicheIdLogico]
+                [$guicheIdLogico, date('Y-m-d')]
             );
             
             $guicheIdParaOperador = $guicheIdLogico;
@@ -231,9 +233,11 @@ class QueueService
                     "SELECT s.*, sv.nome as servico_nome
                      FROM senhas s
                      JOIN servicos sv ON s.servico_id = sv.id
-                     WHERE s.status='AGUARDANDO' AND s.servico_id = ?
+                     WHERE s.status='AGUARDANDO'
+                     AND s.servico_id = ?
+                     AND date(s.created_at) = ?
                      ORDER BY s.id ASC",
-                    [$servicoId]
+                    [$servicoId, date('Y-m-d')]
                 );
             }
             
