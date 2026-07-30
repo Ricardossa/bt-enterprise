@@ -1,0 +1,12 @@
+# BT Queue Enterprise - Git Ignore
+/database/banco.db
+/cache/*
+!/cache/.gitkeep
+/logs/*
+!/logs/.gitkeep
+/99_QUARENTENA/
+.idea/
+.vscode/
+*.log
+.DS_Store
+config/config.json

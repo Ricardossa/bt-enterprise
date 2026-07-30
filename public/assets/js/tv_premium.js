@@ -1,0 +1,184 @@
+/**
+ * BT QUEUE TV PREMIUM - CINEMA ENGINE V2 (NATIVE BRIDGE EDITION)
+ * Motor de chamadas inteligente com suporte a voz nativa Android e Watchdog.
+ */
+
+window.BT = window.BT || {};
+
+BT.tv = {
+    internalQueue: [],      // Fila de senhas a serem anunciadas
+    isBusy: false,          // Bloqueio enquanto está anunciando
+    lastKnownCalls: new Set(), // IDs de chamadas já processadas
+    lastHistoryHash: "",    // Controle de mudança do histórico
+    isVozHabilitada: true,
+    ding: null,             // Objeto de áudio
+    watchdogTimer: null,    // Prevenção contra travamento de fila
+
+    init() {
+        this.updateClock();
+        setInterval(() => this.updateClock(), 1000);
+
+        // Prepara o áudio (Ding-Dong) - Tentamos carregar, mas tratamos erro se não existir
+        this.ding = new Audio('assets/audio/ding.mp3');
+
+        // Inicia o motor de polling
+        this.fetchState();
+        setInterval(() => this.fetchState(), 2000);
+
+        // Inicia o motor de processamento de fila
+        this.processQueue();
+        setInterval(() => this.processQueue(), 1000);
+
+        console.log("📺 TV Engine Initialized. Native Bridge: " + (typeof AndroidVoz !== 'undefined' ? "SI" : "NO"));
+    },
+
+    updateClock() {
+        const now = new Date();
+        const el = document.getElementById('tv-clock');
+        if (el) el.textContent = now.toLocaleTimeString('pt-BR');
+    },
+
+    async fetchState() {
+        try {
+            const res = await fetch('api/estado.php');
+            const json = await res.json();
+            if (json.success) {
+                this.updateUI(json.data);
+                this.analyzeNewEvents(json.data.historico);
+            }
+        } catch (e) { console.error("TV Polling Error:", e); }
+    },
+
+    analyzeNewEvents(historico) {
+        if (!historico || !Array.isArray(historico)) return;
+
+        [...historico].reverse().forEach(call => {
+            const uniqueId = `${call.id}-${call.chamada_em}`;
+
+            if (!this.lastKnownCalls.has(uniqueId)) {
+                this.internalQueue.push(call);
+                this.lastKnownCalls.add(uniqueId);
+
+                if (this.lastKnownCalls.size > 50) {
+                    const firstItem = this.lastKnownCalls.values().next().value;
+                    this.lastKnownCalls.delete(firstItem);
+                }
+            }
+        });
+    },
+
+    async processQueue() {
+        if (this.isBusy || this.internalQueue.length === 0) return;
+
+        this.isBusy = true;
+        const call = this.internalQueue.shift();
+
+        // --- WATCHDOG: Destrava a fila após 12 segundos caso a voz falhe ---
+        if (this.watchdogTimer) clearTimeout(this.watchdogTimer);
+        this.watchdogTimer = setTimeout(() => {
+            if (this.isBusy) {
+                console.warn("⚠️ Watchdog: A chamada demorou demais ou a voz falhou. Destravando fila...");
+                this.toggleFlashing(false);
+                this.isBusy = false;
+            }
+        }, 12000);
+
+        try {
+            this.showCallOnScreen(call);
+
+            // 1. Toca Sinal Sonoro
+            try {
+                await this.ding.play();
+                await new Promise(r => setTimeout(r, 1500));
+            } catch(e) { console.warn("Erro ao tocar Ding. Usuário deve interagir com a tela primeiro."); }
+
+            this.toggleFlashing(true);
+
+            // 2. Executa Voz
+            await this.speakCall(call);
+
+            this.toggleFlashing(false);
+
+        } catch(err) {
+            console.error("Erro no processador de chamada:", err);
+        } finally {
+            clearTimeout(this.watchdogTimer);
+            this.isBusy = false;
+        }
+    },
+
+    showCallOnScreen(call) {
+        const elSenha = document.getElementById('main-ticket');
+        const elGuiche = document.getElementById('main-guiche');
+        if (elSenha) elSenha.textContent = call.senha;
+        if (elGuiche) elGuiche.textContent = call.guiche_nome || "ATENDIMENTO";
+
+        elSenha.classList.remove('pulse-ticket');
+        void elSenha.offsetWidth;
+        elSenha.classList.add('pulse-ticket');
+    },
+
+    toggleFlashing(active) {
+        const elSenha = document.getElementById('main-ticket');
+        if (elSenha) {
+            if (active) elSenha.classList.add('calling-now');
+            else elSenha.classList.remove('calling-now');
+        }
+        document.body.classList.toggle('flash-call', active);
+    },
+
+    speakCall(call) {
+        return new Promise((resolve) => {
+            if (!this.isVozHabilitada) return resolve();
+
+            const texto = `Senha ${call.senha}, dirigir-se ao ${call.guiche_nome}`;
+
+            // --- CANAL 1: PONTE NATIVA ANDROID (ALTA PERFORMANCE) ---
+            if (typeof AndroidVoz !== 'undefined') {
+                try {
+                    AndroidVoz.cancelar();
+                    AndroidVoz.falar(texto);
+                    // Como não temos callback de fim da voz nativa, esperamos um tempo fixo
+                    setTimeout(resolve, 5000);
+                    return;
+                } catch (e) { console.error("Erro na ponte AndroidVoz:", e); }
+            }
+
+            // --- CANAL 2: BROWSER SPEECH SYNTHESIS (FALLBACK) ---
+            window.speechSynthesis.cancel();
+            let count = 0;
+            const repeat = () => {
+                const msg = new SpeechSynthesisUtterance(texto);
+                msg.lang = 'pt-BR';
+                msg.rate = 0.95;
+                msg.onend = () => {
+                    count++;
+                    if (count < 2) setTimeout(repeat, 800);
+                    else resolve();
+                };
+                msg.onerror = () => resolve(); // Se der erro, pula
+                window.speechSynthesis.speak(msg);
+            };
+            repeat();
+        });
+    },
+
+    updateUI(data) {
+        const elHistory = document.getElementById('history-list');
+        if (!elHistory || !data.historico) return;
+
+        const currentHash = JSON.stringify(data.historico);
+        if (currentHash === this.lastHistoryHash) return;
+
+        this.lastHistoryHash = currentHash;
+
+        elHistory.innerHTML = data.historico.map(h => `
+            <li class="history-item animate__animated animate__fadeInRight">
+                <span class="history-ticket">${h.senha}</span>
+                <span class="history-guiche">${h.guiche_nome}</span>
+            </li>
+        `).join('');
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => BT.tv.init());

@@ -1,0 +1,115 @@
+<?php
+
+declare(strict_types=1);
+
+namespace BTQueue\Core;
+
+use PDO;
+use Exception;
+
+/**
+ * Responsável pela instalação limpa do banco de dados (Schema + Seeds).
+ */
+final class DatabaseInstaller
+{
+    private string $dbPath;
+
+    public function __construct()
+    {
+        $this->dbPath = dirname(__DIR__) . '/database/banco.db';
+    }
+
+    public function install(): array
+    {
+        $results = [];
+
+        try {
+            // 1. Garante que o diretório existe
+            if (!is_dir(dirname($this->dbPath))) {
+                mkdir(dirname($this->dbPath), 0775, true);
+            }
+
+            // [NOVO] Verificação de Integridade de Versão
+            // Se o banco existe, verificamos se ele já tem a tabela de identidade (system_info)
+            // Se não tiver, ele é um banco de versão antiga incompatível, então deletamos para criar o novo.
+            if (file_exists($this->dbPath)) {
+                $dbTemp = new PDO('sqlite:' . $this->dbPath);
+                $check = $dbTemp->query("SELECT name FROM sqlite_master WHERE type='table' AND name='system_info'")->fetch();
+                $dbTemp = null; // Fecha a conexão para permitir o delete
+
+                if (!$check) {
+                    @unlink($this->dbPath);
+                }
+            }
+
+            // 2. Conecta ao banco (isso cria o arquivo se não existir)
+            $db = Database::getInstance();
+
+            // 3. Executa o Schema
+            $schemaFile = dirname(__DIR__) . '/database/schema.sql';
+            if (!file_exists($schemaFile)) throw new Exception("Arquivo schema.sql não encontrado.");
+
+            $schemaSql = file_get_contents($schemaFile);
+            $db->exec($schemaSql);
+            $results[] = "✅ Estrutura de tabelas criada.";
+
+            // 4. Executa os Seeds
+            $seedsFile = dirname(__DIR__) . '/database/seeds.sql';
+            if (!file_exists($seedsFile)) throw new Exception("Arquivo seeds.sql não encontrado.");
+
+            $seedsSql = file_get_contents($seedsFile);
+            $db->exec($seedsSql);
+            $results[] = "✅ Dados iniciais configurados.";
+
+            // 5. Gera Identidade da Instalação (UUID Permanente)
+            $uuid = $this->generateUuid();
+            Database::execute(
+                "INSERT OR IGNORE INTO system_info (installation_uuid, versao, build, hostname, php_version) VALUES (?, ?, ?, ?, ?)",
+                [
+                    $uuid,
+                    Config::get('app.version', '4.0.0'),
+                    date('Ymd.His'),
+                    gethostname(),
+                    PHP_VERSION
+                ]
+            );
+            $results[] = "✅ Identidade gerada: $uuid";
+
+            // 6. Marca todas as migrations atuais como concluídas (Evita re-execução em banco novo)
+            $migrationDir = dirname(__DIR__) . '/database/migrations';
+            $arquivos = glob($migrationDir . '/*.sql');
+            foreach ($arquivos as $arquivo) {
+                $nome = basename($arquivo);
+                Database::execute(
+                    "INSERT OR IGNORE INTO migrations (arquivo, checksum, executado_em) VALUES (?, ?, CURRENT_TIMESTAMP)",
+                    [$nome, md5_file($arquivo)]
+                );
+            }
+            $results[] = "✅ Histórico de migrações inicializado.";
+
+            return [
+                'success' => true,
+                'message' => 'Banco de dados instalado com sucesso.',
+                'details' => $results,
+                'uuid' => $uuid
+            ];
+
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Erro na instalação do banco: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    private function generateUuid(): string
+    {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+    }
+}

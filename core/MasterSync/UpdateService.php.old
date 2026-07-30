@@ -1,0 +1,129 @@
+<?php
+
+declare(strict_types=1);
+
+namespace BTQueue\Core\MasterSync;
+
+use BTQueue\Core\Config;
+use BTQueue\Core\Database;
+use Exception;
+use ZipArchive;
+
+/**
+ * Motor de Atualização Remota (OTA) - Versão Cliente
+ */
+final class UpdateService
+{
+    private string $masterUrl;
+    private string $tempDir;
+    private string $wwwDir;
+
+    public function __construct()
+    {
+        $urlConfig = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'master_url' LIMIT 1");
+        $this->masterUrl = $urlConfig ? $urlConfig['valor'] : 'http://api.brandaotech.com.br:8080/api/v1/sync.php';
+
+        $this->wwwDir = dirname(__DIR__, 2);
+        $this->tempDir = $this->wwwDir . '/cache/updates';
+    }
+
+    /**
+     * Verifica se há atualizações na Master
+     */
+    public function check(): array
+    {
+        $currentVersion = $this->getCurrentVersion();
+        $checkUrl = str_replace('sync.php', 'updates_check.php', $this->masterUrl) . "?v=" . $currentVersion;
+
+        $ch = curl_init($checkUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            throw new Exception("Falha ao consultar Master (HTTP $httpCode)");
+        }
+
+        $json = json_decode($response, true);
+
+        // Se a Master usar JsonResponse (que coloca em 'data'), pegamos de lá.
+        // Se enviar direto, pegamos a raiz do JSON.
+        if (isset($json['data'])) {
+            return $json['data'];
+        }
+
+        return $json ?? ['update_available' => false];
+    }
+
+    /**
+     * Realiza o download e aplicação do pacote
+     */
+    public function update(string $url, string $expectedHash): array
+    {
+        try {
+            if (!is_dir($this->tempDir)) mkdir($this->tempDir, 0775, true);
+
+            $zipFile = $this->tempDir . '/update_package.zip';
+
+            // 1. Download do Pacote
+            $fp = fopen($zipFile, 'w+');
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 300); // 5 minutos de timeout
+            curl_setopt($ch, CURLOPT_FILE, $fp);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_exec($ch);
+            curl_close($ch);
+            fclose($fp);
+
+            // 2. Validação de Integridade (SHA256)
+            $actualHash = hash_file('sha256', $zipFile);
+            if ($actualHash !== $expectedHash) {
+                unlink($zipFile);
+                throw new Exception("Falha na integridade do arquivo. Hash divergente.");
+            }
+
+            // 3. Aplicação do Update (Extração)
+            $zip = new ZipArchive();
+            if ($zip->open($zipFile) === TRUE) {
+
+                // Backup da versão anterior (Opcional, mas recomendado)
+                // Aqui podemos apenas sobrescrever, pois o zip é carga total
+
+                $zip->extractTo($this->wwwDir);
+
+                // --- MELHORIA: ATUALIZADOR DE LANÇADOR (VBS) ---
+                // Se o ZIP trouxer um novo lançador silencioso, movemos para a raiz (uma pasta acima da www)
+                $vbsInZip = $this->wwwDir . '/Ligar_Invisivel.vbs';
+                $rootPath = dirname($this->wwwDir); // Raiz do sistema (C:\BT Queue Enterprise)
+
+                if (file_exists($vbsInZip)) {
+                    @copy($vbsInZip, $rootPath . '/Ligar_Invisivel.vbs');
+                    @unlink($vbsInZip); // Remove da pasta www para não ficar duplicado
+                }
+
+                $zip->close();
+
+                unlink($zipFile); // Limpa o rastro
+
+                return ['success' => true, 'message' => 'Sistema atualizado com sucesso!'];
+            } else {
+                throw new Exception("Falha ao abrir pacote ZIP.");
+            }
+
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    private function getCurrentVersion(): string
+    {
+        $path = $this->wwwDir . '/public/version.json';
+        if (file_exists($path)) {
+            $json = json_decode(file_get_contents($path), true);
+            return $json['version'] ?? '4.0.0';
+        }
+        return '4.0.0';
+    }
+}

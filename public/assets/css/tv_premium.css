@@ -1,0 +1,149 @@
+/* ============================================================
+   BT QUEUE TV PREMIUM - CINEMA FULLSCREEN MODE
+   ============================================================ */
+
+:root {
+    --bg-cinema: #050b14;
+    --side-bg: rgba(13, 27, 42, 0.95);
+    --neon-blue: #1DB4FF;
+    --neon-green: #18C964;
+    --text-white: #FFFFFF;
+    --border-cinema: #1E3552;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; cursor: none; }
+
+body {
+    background-color: var(--bg-cinema);
+    color: var(--text-white);
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+.tv-layout {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* TOPBAR */
+.tv-topbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 80px;
+    padding: 0 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+    z-index: 10;
+}
+
+.tv-logo { height: 50px; filter: drop-shadow(0 0 10px rgba(29, 180, 255, 0.5)); }
+.tv-clock { font-size: 32px; font-weight: 700; color: var(--neon-blue); font-variant-numeric: tabular-nums; }
+
+/* ÁREA PRINCIPAL (70%) */
+.tv-main {
+    flex: 7;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    border-right: 2px solid var(--border-cinema);
+}
+
+.label-chamada {
+    font-size: 32px;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    color: var(--text2);
+    margin-bottom: 20px;
+    opacity: 0.8;
+}
+
+.ticket-giant {
+    font-size: 280px;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--text-white);
+    text-shadow: 0 0 50px rgba(29, 180, 255, 0.4);
+    margin: 20px 0;
+}
+
+.guiche-label {
+    font-size: 60px;
+    font-weight: 700;
+    color: var(--neon-green);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* PAINEL LATERAL (30%) */
+.tv-sidebar {
+    flex: 3;
+    background: var(--side-bg);
+    padding: 100px 30px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.sidebar-title {
+    font-size: 20px;
+    text-transform: uppercase;
+    color: var(--neon-blue);
+    border-bottom: 2px solid var(--neon-blue);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+}
+
+.history-list { list-style: none; display: flex; flex-direction: column; gap: 20px; }
+
+.history-item {
+    background: rgba(255,255,255,0.03);
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.history-ticket { font-size: 36px; font-weight: 800; color: var(--text-white); }
+.history-guiche { font-size: 18px; color: var(--neon-blue); text-transform: uppercase; }
+
+/* ANIMAÇÃO DE CHAMADA */
+.flash-call {
+    animation: flash 0.8s ease-out;
+}
+
+@keyframes flash {
+    0% { background-color: var(--neon-blue); }
+    100% { background-color: transparent; }
+}
+
+.pulse-ticket {
+    animation: ticketArrival 1.2s ease-out;
+}
+
+/* Efeito de Piscante para Chamada Ativa */
+.calling-now {
+    animation: flashTicket 1s infinite;
+}
+
+@keyframes flashTicket {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.02); color: var(--neon-blue); }
+}
+
+@keyframes ticketArrival {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.1); text-shadow: 0 0 80px rgba(29, 180, 255, 1); }
+    100% { transform: scale(1); opacity: 1; }
+}

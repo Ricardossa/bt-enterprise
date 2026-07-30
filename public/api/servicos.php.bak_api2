@@ -1,0 +1,84 @@
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../bootstrap.php';
+
+use BTQueue\Core\ServicoService;
+
+header('Content-Type: application/json; charset=utf-8');
+
+$service = new ServicoService();
+
+switch ($_SERVER['REQUEST_METHOD']) {
+
+    case 'GET':
+
+        echo json_encode([
+            'success' => true,
+            'data' => $service->listar()
+        ], JSON_UNESCAPED_UNICODE);
+
+        break;
+
+    case 'POST':
+
+        $dados = json_decode(file_get_contents("php://input"), true);
+
+        echo json_encode(
+            $service->adicionar(
+                $dados['codigo'] ?? '',
+                $dados['nome'] ?? '',
+                $dados['slug'] ?? '',
+                $dados['prefixo'] ?? ''
+            ),
+            JSON_UNESCAPED_UNICODE
+        );
+
+        break;
+
+    case 'PUT':
+
+        $dados = json_decode(file_get_contents("php://input"), true);
+
+        echo json_encode(
+            $service->editar(
+                (int)$dados['id'],
+                $dados['codigo'],
+                $dados['nome'],
+                $dados['icone'],
+                $dados['cor']
+            ),
+            JSON_UNESCAPED_UNICODE
+        );
+
+        break;
+
+    case 'DELETE':
+
+        $dados = json_decode(file_get_contents("php://input"), true);
+
+        echo json_encode(
+
+            $service->excluir(
+
+                (int)$dados['id']
+
+            ),
+
+            JSON_UNESCAPED_UNICODE
+
+        );
+
+        break;
+
+    default:
+
+        http_response_code(405);
+
+        echo json_encode([
+            'success' => false,
+            'message' => 'Método não permitido'
+        ]);
+
+}
