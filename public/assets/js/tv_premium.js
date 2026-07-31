@@ -13,6 +13,7 @@ BT.tv = {
     isVozHabilitada: true,
     ding: null,             // Objeto de áudio
     watchdogTimer: null,    // Prevenção contra travamento de fila
+    isFirstFetch: true,     // Bloqueia voz no primeiro carregamento (F5)
 
     init() {
         this.updateClock();
@@ -56,7 +57,14 @@ BT.tv = {
             const uniqueId = `${call.id}-${call.chamada_em}`;
 
             if (!this.lastKnownCalls.has(uniqueId)) {
-                this.internalQueue.push(call);
+                // Só enfileira para falar se não for a primeira carga (F5)
+                if (!this.isFirstFetch) {
+                    console.log("📝 Enfileirando nova chamada:", call.senha);
+                    this.internalQueue.push(call);
+                } else {
+                    console.log("🤫 Ignorando voz para histórico inicial:", call.senha);
+                }
+
                 this.lastKnownCalls.add(uniqueId);
 
                 if (this.lastKnownCalls.size > 50) {
@@ -65,6 +73,11 @@ BT.tv = {
                 }
             }
         });
+
+        // Após a primeira análise, libera a voz para os próximos eventos
+        if (this.isFirstFetch) {
+            this.isFirstFetch = false;
+        }
     },
 
     async processQueue() {
