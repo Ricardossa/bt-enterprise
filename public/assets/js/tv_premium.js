@@ -180,6 +180,15 @@ BT.tv = {
         const elHistory = document.getElementById('history-list');
         if (!elHistory || !data.historico) return;
 
+        // --- MODO RESTAURAÇÃO (F5): Mostra a última chamada no meio sem piscar ---
+        if (this.isFirstFetch && data.historico.length > 0) {
+            const lastCall = data.historico[0];
+            const elSenha = document.getElementById('main-ticket');
+            const elGuiche = document.getElementById('main-guiche');
+            if (elSenha) elSenha.textContent = lastCall.senha;
+            if (elGuiche) elGuiche.textContent = lastCall.guiche_nome || "ATENDIMENTO";
+        }
+
         const currentHash = JSON.stringify(data.historico);
         if (currentHash === this.lastHistoryHash) return;
 
