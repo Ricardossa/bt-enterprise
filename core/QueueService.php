@@ -34,9 +34,11 @@ class QueueService
         try {
             Database::begin();
 
-            // --- LÓGICA DE RESET DIÁRIO (V5.1) ---
-            // Buscamos a última senha do serviço emitida HOJE
+            // --- LÓGICA DE RESET DIÁRIO BLINDADA (V5.2) ---
+            // Usamos a data do PHP para garantir sincronia com o fuso horário local
+            $agora = date('Y-m-d H:i:s');
             $hoje = date('Y-m-d');
+
             $ultima = Database::fetch(
                 "SELECT numero FROM senhas
                  WHERE servico_id = ?
@@ -59,7 +61,9 @@ class QueueService
                 'numero' => $numero,
                 'prefixo' => $prefixo,
                 'status' => 'AGUARDANDO',
-                'device_id' => $deviceId
+                'device_id' => $deviceId,
+                'created_at' => $agora, // Força a data do PHP
+                'emitida_em' => $agora  // Força a data do PHP
             ];
 
             // Garante compatibilidade entre 'senha' e 'codigo'
