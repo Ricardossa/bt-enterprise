@@ -44,6 +44,17 @@ class DashboardController
             }
         }
 
+        // --- CHECAGEM DA IMPRESSORA LOCAL (Porta 8001) ---
+        $printStatus = 'Offline';
+        $printColor = 'var(--danger)';
+
+        $connection = @fsockopen('127.0.0.1', 8001, $errno, $errstr, 0.5);
+        if ($connection) {
+            $printStatus = 'Online';
+            $printColor = 'var(--success)';
+            fclose($connection);
+        }
+
         return [
             [
                 'nome' => 'SQLite',
@@ -51,9 +62,9 @@ class DashboardController
                 'color' => 'var(--success)'
             ],
             [
-                'nome' => 'API Local',
-                'status' => 'Ativa',
-                'color' => 'var(--success)'
+                'nome' => 'Impressora',
+                'status' => $printStatus,
+                'color' => $printColor
             ],
             [
                 'nome' => 'MasterSync',

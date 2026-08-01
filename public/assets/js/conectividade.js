@@ -17,6 +17,43 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnSalvar = document.getElementById("btnSalvar");
     const btnBaixarQR = document.getElementById("btnBaixarQR");
     const btnGerarPlaca = document.getElementById("btnGerarPlaca");
+    const btnTestarImpressora = document.getElementById("btnTestarImpressora");
+
+    async function testarImpressora() {
+        const ip = campos.local_print_ip.value.trim() || window.location.hostname;
+        const statusBox = document.getElementById("printStatusBox");
+        const statusIcon = document.getElementById("printStatusIcon");
+        const statusText = document.getElementById("printStatusText");
+
+        statusBox.style.display = "flex";
+        statusBox.style.background = "rgba(255,255,255,0.05)";
+        statusText.innerText = "Conectando em " + ip + ":8001...";
+        statusIcon.className = "fa-solid fa-spinner fa-spin";
+
+        try {
+            // Tenta um fetch simples para ver se a porta responde (CORS mode)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+            const res = await fetch(`http://${ip}:8001/`, {
+                method: 'GET',
+                mode: 'no-cors',
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+            statusBox.style.background = "rgba(24, 201, 100, 0.1)";
+            statusBox.style.color = "#18C964";
+            statusText.innerText = "CONECTADO! O motor de impressão está ativo.";
+            statusIcon.className = "fa-solid fa-circle-check";
+
+        } catch (e) {
+            statusBox.style.background = "rgba(255, 77, 77, 0.1)";
+            statusBox.style.color = "#FF4D4D";
+            statusText.innerText = "OFFLINE. Verifique se o Ligar_Impressora_Local.bat está aberto.";
+            statusIcon.className = "fa-solid fa-circle-xmark";
+        }
+    }
 
     async function carregarConfiguracoes() {
         console.log("📂 Carregando configurações...");
@@ -153,6 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (btnSalvar) btnSalvar.addEventListener("click", salvarConfiguracoes);
     if (btnGerarPlaca) btnGerarPlaca.addEventListener("click", gerarPlaca);
+    if (btnTestarImpressora) btnTestarImpressora.addEventListener("click", testarImpressora);
 
     if (btnBaixarQR) {
         btnBaixarQR.addEventListener("click", () => {

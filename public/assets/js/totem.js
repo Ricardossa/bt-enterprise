@@ -143,16 +143,18 @@ BT.totem = {
     async dispararImpressao(dados) {
         const empresa = window.BT_TOTEM_CONFIG?.empresa || 'BT Queue';
 
-        // --- LÓGICA DE PONTE LOCAL (Nuvem ↔ Local) ---
+        // --- LÓGICA DE PONTE INTELIGENTE (V5.3) ---
         let printEndpoint = 'api/imprimir.php';
-        const localIp = window.BT_TOTEM_CONFIG?.print_ip;
+        let localIp = window.BT_TOTEM_CONFIG?.print_ip;
 
-        if (localIp) {
+        // Fallback Automático: Se não houver IP configurado, assume que a impressora está no servidor
+        if (!localIp || localIp === '127.0.0.1' || localIp === 'localhost') {
+            printEndpoint = `http://${window.location.hostname}:8001/`;
+        } else {
             printEndpoint = `http://${localIp}:8001/`;
-            console.log("📡 Usando Ponte de Impressão Local Injetada:", printEndpoint);
         }
 
-        console.log("🖨️ Solicitando impressão para:", dados.senha);
+        console.log("🖨️ Acionando Motor de Impressão:", printEndpoint);
 
         try {
             const response = await fetch(printEndpoint, {

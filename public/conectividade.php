@@ -56,8 +56,19 @@ include __DIR__ . '/includes/header.php';
 
                 <div class="form-group" style="margin-top:20px; border-top: 1px solid var(--border); padding-top: 15px;">
                     <label style="color:var(--secondary); font-size:12px;">🖨️ IP DA IMPRESSORA LOCAL (Para Nuvem)</label>
-                    <input type="text" id="local_print_ip" class="form-control" placeholder="Ex: 192.168.1.50">
-                    <p style="font-size:10px; color:var(--text2); margin-top:5px;">Preencha apenas se o seu servidor estiver na nuvem.</p>
+                    <div style="display:flex; gap:10px; margin-top:5px;">
+                        <input type="text" id="local_print_ip" class="form-control" placeholder="Ex: 192.168.1.50" style="flex:1;">
+                        <button id="btnTestarImpressora" type="button" class="bt-button" style="background:var(--sidebar); border:1px solid var(--border); font-size:11px; white-space:nowrap;">
+                            <i class="fa-solid fa-plug"></i> TESTAR CONEXÃO
+                        </button>
+                    </div>
+                    <div id="printStatusBox" style="margin-top:10px; padding:10px; border-radius:8px; display:none; font-size:12px; align-items:center; gap:10px;">
+                        <i id="printStatusIcon" class="fa-solid"></i>
+                        <span id="printStatusText"></span>
+                    </div>
+                    <p style="font-size:10px; color:var(--text2); margin-top:10px;">
+                        Dica: O motor de impressão deve estar ativo no IP indicado (Porta 8001).
+                    </p>
                 </div>
             </section>
 
