@@ -30,9 +30,13 @@ include __DIR__ . '/includes/header.php';
             <h2><i class="fa-solid fa-chart-pie"></i> Inteligência de Negócio</h2>
             <p style="color:var(--text2); font-size:14px;">Análise de produtividade e tempo médio de espera.</p>
         </div>
-        <button onclick="carregarDados()" class="bt-button bt-primary">
-            <i class="fa-solid fa-rotate"></i> Atualizar Dados
-        </button>
+
+        <!-- FILTROS DE PERÍODO -->
+        <div style="display:flex; gap:10px; background:var(--sidebar); padding:5px; border-radius:10px; border:1px solid var(--border);">
+            <button onclick="setPeriodo('hoje')" class="bt-button" id="btn-hoje" style="padding:8px 15px; font-size:12px;">HOJE</button>
+            <button onclick="setPeriodo('mes')" class="bt-button" id="btn-mes" style="padding:8px 15px; font-size:12px; background:transparent;">MÊS</button>
+            <button onclick="setPeriodo('ano')" class="bt-button" id="btn-ano" style="padding:8px 15px; font-size:12px; background:transparent;">ANO</button>
+        </div>
     </div>
 
     <!-- RESUMO RÁPIDO -->
@@ -91,9 +95,40 @@ include __DIR__ . '/includes/header.php';
 </main>
 
 <script>
+let filtroAtual = 'hoje';
+
+function getDatas() {
+    const agora = new Date();
+    let inicio, fim;
+
+    const format = (d) => d.toISOString().split('T')[0];
+
+    if (filtroAtual === 'mes') {
+        inicio = format(new Date(agora.getFullYear(), agora.getMonth(), 1));
+        fim = format(new Date(agora.getFullYear(), agora.getMonth() + 1, 0));
+    } else if (filtroAtual === 'ano') {
+        inicio = format(new Date(agora.getFullYear(), 0, 1));
+        fim = format(new Date(agora.getFullYear(), 11, 31));
+    } else {
+        inicio = format(agora);
+        fim = format(agora);
+    }
+    return { inicio, fim };
+}
+
+function setPeriodo(p) {
+    filtroAtual = p;
+    ['hoje', 'mes', 'ano'].forEach(btn => {
+        const el = document.getElementById('btn-' + btn);
+        el.style.background = (btn === p) ? 'var(--primary)' : 'transparent';
+    });
+    carregarDados();
+}
+
 async function carregarDados() {
+    const { inicio, fim } = getDatas();
     try {
-        const res = await fetch('api/relatorios_stats.php');
+        const res = await fetch(`api/relatorios_stats.php?inicio=${inicio}&fim=${fim}`);
         if (!res.ok) {
             if (res.status === 401) {
                 window.location = 'login.php';

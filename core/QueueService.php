@@ -288,16 +288,29 @@ class QueueService
         );
     }
 
-    public function estatisticas(): array
+    /**
+     * Retorna estatísticas detalhadas por período.
+     */
+    public function getStatsPorPeriodo(?string $inicio = null, ?string $fim = null): array
     {
-        $hoje = date('Y-m-d');
-        $where = " WHERE date(created_at) = '$hoje'";
+        $inicio = $inicio ?: date('Y-m-d');
+        $fim = $fim ?: date('Y-m-d');
+
+        $sqlBase = "SELECT COUNT(*) as total FROM senhas WHERE date(created_at) BETWEEN ? AND ?";
+        $params = [$inicio, $fim];
 
         return [
-            'emitidas' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas" . $where)['total'],
-            'pendentes' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas" . $where . " AND status = 'AGUARDANDO'")['total'],
-            'atendimento' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas" . $where . " AND status = 'CHAMANDO'")['total'],
-            'finalizadas' => (int) Database::fetch("SELECT COUNT(*) AS total FROM senhas" . $where . " AND status = 'FINALIZADA'")['total']
+            'emitidas'    => (int) (Database::fetch($sqlBase, $params)['total'] ?? 0),
+            'pendentes'   => (int) (Database::fetch($sqlBase . " AND status = 'AGUARDANDO'", $params)['total'] ?? 0),
+            'chamadas'    => (int) (Database::fetch($sqlBase . " AND status != 'AGUARDANDO'", $params)['total'] ?? 0),
+            'finalizadas' => (int) (Database::fetch($sqlBase . " AND status = 'FINALIZADA'", $params)['total'] ?? 0),
+            'success'     => true,
+            'periodo'     => ['inicio' => $inicio, 'fim' => $fim]
         ];
+    }
+
+    public function estatisticas(): array
+    {
+        return $this->getStatsPorPeriodo();
     }
 }

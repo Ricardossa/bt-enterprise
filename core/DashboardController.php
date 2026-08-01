@@ -13,22 +13,8 @@ class DashboardController
      */
     public function getStats(): array
     {
-        try {
-            $emitidas = Database::fetch("SELECT COUNT(*) as total FROM senhas");
-            $chamadas = Database::fetch("SELECT COUNT(*) as total FROM senhas WHERE status != 'AGUARDANDO'");
-            $finalizadas = Database::fetch("SELECT COUNT(*) as total FROM senhas WHERE status = 'FINALIZADA'");
-            $pendentes = Database::fetch("SELECT COUNT(*) as total FROM senhas WHERE status = 'AGUARDANDO'");
-
-            return [
-                'emitidas'    => (int) ($emitidas['total'] ?? 0),
-                'chamadas'    => (int) ($chamadas['total'] ?? 0),
-                'finalizadas' => (int) ($finalizadas['total'] ?? 0),
-                'pendentes'   => (int) ($pendentes['total'] ?? 0),
-                'success'     => true
-            ];
-        } catch (Exception $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
+        $queue = new QueueService();
+        return $queue->getStatsPorPeriodo();
     }
 
     /**

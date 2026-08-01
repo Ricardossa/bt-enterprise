@@ -11,10 +11,9 @@ header('Content-Type: application/json; charset=utf-8');
 Auth::protegerAPI('ADMIN');
 
 try {
-    // Detecta colunas da tabela senhas para ser ultra-compatível
-    $resInfo = Database::getInstance()->query("PRAGMA table_info(senhas)");
-    $cols = array_column($resInfo->fetchAll(PDO::FETCH_ASSOC), 'name');
-    $campoCodigo = in_array('codigo', $cols) ? 's.codigo' : 's.senha';
+    $inicio = $_GET['inicio'] ?? date('Y-m-d');
+    $fim = $_GET['fim'] ?? date('Y-m-d');
+    $params = [$inicio, $fim];
 
     // 1. Ranking de Atendimentos por Operador
     $rankingOperadores = Database::fetchAll("
@@ -24,9 +23,10 @@ try {
             AVG(CAST((strftime('%s', finalizada_em) - strftime('%s', chamada_em)) AS INT) / 60.0) as tempo_medio_atendimento
         FROM senhas
         WHERE status = 'FINALIZADA' AND atendente IS NOT NULL
+        AND date(created_at) BETWEEN ? AND ?
         GROUP BY atendente
         ORDER BY total DESC
-    ");
+    ", $params);
 
     // 2. Tempo Médio de Espera por Serviço
     $esperaPorServico = Database::fetchAll("
@@ -37,8 +37,9 @@ try {
         JOIN servicos s ON s.id = sen.servico_id
         WHERE sen.status IN ('CHAMANDO', 'FINALIZADA', 'ATENDIMENTO')
         AND sen.chamada_em IS NOT NULL
+        AND date(sen.created_at) BETWEEN ? AND ?
         GROUP BY s.id
-    ");
+    ", $params);
 
     // 3. Resumo Global
     $resumo = Database::fetch("
@@ -47,7 +48,8 @@ try {
             AVG(CAST((strftime('%s', chamada_em) - strftime('%s', emitida_em)) AS INT) / 60.0) as espera_global
         FROM senhas
         WHERE chamada_em IS NOT NULL
-    ");
+        AND date(created_at) BETWEEN ? AND ?
+    ", $params);
 
     // 4. Movimento por Hora (Picos)
     $movimentoHora = Database::fetchAll("
@@ -55,9 +57,10 @@ try {
             strftime('%H:00', emitida_em) as hora,
             COUNT(*) as total
         FROM senhas
+        WHERE date(created_at) BETWEEN ? AND ?
         GROUP BY hora
         ORDER BY hora ASC
-    ");
+    ", $params);
 
     echo json_encode([
         'success' => true,
