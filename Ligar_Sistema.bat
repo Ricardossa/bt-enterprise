@@ -1,33 +1,45 @@
 @echo off
 setlocal
 pushd "%~dp0"
-title BT Queue Enterprise - Ligar Sistema
+title BT Queue Enterprise - Manager
 color 0b
 
 echo ============================================================
-echo   🚀 BT QUEUE ENTERPRISE - INICIALIZADOR UNIFICADO
+echo   🚀 BT QUEUE ENTERPRISE - GERENCIADOR DO SISTEMA
 echo ============================================================
 echo.
 
-:: 1. REMOVE BLOQUEIOS DO WINDOWS (SOMENTE LEITURA)
-echo   [1/3] Preparando arquivos...
-attrib -r "*" /s /d > nul 2>&1
+:: 1. VERIFICA SE O SERVIÇO EXISTE
+sc query BTQueueServer > nul 2>&1
+if %errorlevel% neq 0 (
+    echo [!] O servico BT Queue nao esta instalado.
+    echo     Iniciando modo portatil legado...
+    start /min wscript.exe "BT_Kernel.vbs"
+    goto OPEN_BROWSER
+)
 
-:: 2. CRIAÇÃO DE ATALHO NO DESKTOP (Se não existir)
-set "LNK_TARGET=%~dp0Ligar_Sistema.bat"
-set "LNK_WORKDIR=%~dp0"
-powershell -Command "$d=[Environment]::GetFolderPath('Desktop'); $p=\"$d\BT Queue Enterprise.lnk\"; if(!(Test-Path $p)){ $s=(New-Object -COM WScript.Shell).CreateShortcut($p); $s.TargetPath='%LNK_TARGET%'; $s.WorkingDirectory='%LNK_WORKDIR%'; $s.Save(); }"
+:: 2. VERIFICA SE ESTÁ RODANDO
+for /f "tokens=4" %%s in ('sc query BTQueueServer ^| findstr STATE') do set "STATE=%%s"
 
-:: 3. DISPARO DO KERNEL (SILENCIOSO)
-echo   [2/3] Ligando Motores (Aplicação + Impressora)...
-start /min wscript.exe "BT_Kernel.vbs"
+if "%STATE%" neq "RUNNING" (
+    echo [!] O sistema esta desligado.
+    echo.
+    set /p choice="Deseja ligar o sistema agora? (S/N): "
+    if /i "%choice%"=="S" (
+        echo [ ] Ligando motores...
+        net start BTQueueServer
+        net start BTQueuePrinter
+        timeout /t 5 /nobreak > nul
+    ) else (
+        exit
+    )
+)
 
-echo   [3/3] Aguardando estabilização...
-timeout /t 5 /nobreak > nul
+:OPEN_BROWSER
+echo ✅ SISTEMA EM OPERAÇÃO!
+echo [ ] Abrindo painel de atendimento...
+start http://localhost:8090/index.php
 
-echo.
-echo   ✅ TUDO PRONTO!
-echo   O sistema e a impressora ja estao ativos em segundo plano.
 echo.
 echo ============================================================
 timeout /t 3
