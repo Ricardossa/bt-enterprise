@@ -20,17 +20,13 @@
 }
 
 .logo{
-
     display:flex;
-
-    align-items:flex-start;
-
-    gap:15px;
-
-    padding:25px;
-
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    gap:10px;
+    padding:30px 20px;
     border-bottom:1px solid var(--border);
-
 }
 
 .logo-icon{
@@ -72,19 +68,11 @@
 }
 
 .logo-text h2{
-
     margin:0;
-
-    font-size:17px;
-
+    font-size:16px;
     line-height:1.25;
-
     word-break:break-word;
-
     overflow-wrap:anywhere;
-
-    max-width:140px;
-
 }
 
 .sidebar nav{

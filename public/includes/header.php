@@ -25,7 +25,7 @@ $isAdmin = Auth::isAdmin();
 <div class="sidebar">
     <div class="logo">
         <?php if ($logoExiste): ?>
-            <img id="empresaLogo" src="<?= $logoUrl ?>" alt="<?= htmlspecialchars($empresa) ?>" style="width:60px;height:60px;object-fit:contain;flex-shrink:0;">
+            <img id="empresaLogo" src="<?= $logoUrl ?>" alt="<?= htmlspecialchars($empresa) ?>" style="max-width:180px; max-height:80px; object-fit:contain;">
         <?php else: ?>
             <div class="logo-icon">BT</div>
         <?php endif; ?>
