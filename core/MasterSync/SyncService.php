@@ -62,6 +62,9 @@ final class SyncService
                 'device_uuid' => gethostname(), // Identificador da VM/Máquina
                 'sync_queue' => $pendentes,
                 'device' => [
+                    'fabricante' => 'Windows PC',
+                    'modelo' => gethostname(),
+                    'android' => PHP_OS,
                     'os' => PHP_OS,
                     'php' => PHP_VERSION,
                     'time' => date('Y-m-d H:i:s')

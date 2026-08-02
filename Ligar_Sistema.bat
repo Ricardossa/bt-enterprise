@@ -4,6 +4,15 @@ pushd "%~dp0"
 title BT Queue Enterprise - Manager
 color 0b
 
+:: --- VERIFICAÇÃO DE PRIVILÉGIOS ADMINISTRATIVOS ---
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [!] O sistema precisa de privilegios de ADMINISTRADOR.
+    echo [ ] Tentando elevar privilegios automaticamente...
+    powershell -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
+
 echo ============================================================
 echo   🚀 BT QUEUE ENTERPRISE - GERENCIADOR DO SISTEMA
 echo ============================================================
@@ -28,6 +37,13 @@ if "%STATE%" neq "RUNNING" (
     if /i "%choice%"=="S" (
         echo [ ] Ligando motores...
         net start BTQueueServer
+        if %errorlevel% neq 0 (
+            echo.
+            echo ❌ ERRO: Nao foi possivel iniciar o servico.
+            echo Tente executar este arquivo como ADMINISTRADOR.
+            pause
+            exit
+        )
         net start BTQueuePrinter
         timeout /t 5 /nobreak > nul
     ) else (
@@ -36,9 +52,18 @@ if "%STATE%" neq "RUNNING" (
 )
 
 :OPEN_BROWSER
+:: 3. DISPARA O SINCRONISMO DE FUNDO (Caso nao esteja rodando)
+tasklist /fi "imagename eq wscript.exe" | findstr "BT_Sync_Service.vbs" > nul
+if %errorlevel% neq 0 (
+    echo [ ] Ativando sincronismo inteligente...
+    start /min wscript.exe "BT_Sync_Service.vbs"
+)
+
 echo ✅ SISTEMA EM OPERAÇÃO!
+echo [ ] Aguardando estabilizacao dos motores...
+timeout /t 2 /nobreak > nul
 echo [ ] Abrindo painel de atendimento...
-start http://localhost:8090/index.php
+powershell -Command "Start-Process 'http://localhost:8090/index.php'"
 
 echo.
 echo ============================================================

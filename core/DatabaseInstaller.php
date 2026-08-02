@@ -61,7 +61,18 @@ final class DatabaseInstaller
             $db->exec($seedsSql);
             $results[] = "✅ Dados iniciais configurados.";
 
-            // 5. Gera Identidade da Instalação (UUID Permanente)
+            // 5. Garante que a URL da Master está sempre configurada no banco inicial
+            Database::execute(
+                "INSERT OR IGNORE INTO configuracoes (chave, valor, tipo, descricao) VALUES (?, ?, 'STRING', ?)",
+                [
+                    'master_url',
+                    'http://api.brandaotech.com.br:8080/api/v1/sync.php',
+                    'URL de sincronização com a Platform Master'
+                ]
+            );
+            $results[] = "✅ URL da Master garantida no banco.";
+
+            // 6. Gera Identidade da Instalação (UUID Permanente)
             $uuid = $this->generateUuid();
             Database::execute(
                 "INSERT OR IGNORE INTO system_info (installation_uuid, versao, build, hostname, php_version) VALUES (?, ?, ?, ?, ?)",
