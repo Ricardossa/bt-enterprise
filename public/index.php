@@ -25,7 +25,13 @@ if (!$bootFile) {
 require_once $bootFile;
 
 $lockFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'database' . DIRECTORY_SEPARATOR . '.installed';
-$dbFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'database' . DIRECTORY_SEPARATOR . 'banco.db';
+$dbFolder = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'database';
+$dbFile = $dbFolder . DIRECTORY_SEPARATOR . 'banco.db';
+$templateFile = $dbFolder . DIRECTORY_SEPARATOR . 'banco_template.db';
+
+if (!file_exists($dbFile) && file_exists($templateFile)) {
+    @copy($templateFile, $dbFile);
+}
 
 if (!file_exists($lockFile) || !file_exists($dbFile)) {
     header('Location: setup.php');

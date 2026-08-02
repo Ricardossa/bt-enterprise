@@ -44,7 +44,7 @@ Source: "service\*"; DestDir: "{app}\service"; Flags: ignoreversion recursesubdi
 Source: "*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "runtime\*;service\*;redist\*;database\banco.db;logs\*;cache\*;99_QUARENTENA\*;BT_Setup_Installer.iss;.git\*;output\*"
 
 ; Protege arquivos de dados e scripts de API novos
-Source: "database\banco.db"; DestDir: "{app}\database"; Flags: ignoreversion onlyifdoesntexist
+Source: "database\banco_template.db"; DestDir: "{app}\database"; Flags: ignoreversion onlyifdoesntexist
 Source: "config\config.json"; DestDir: "{app}\config"; Flags: ignoreversion onlyifdoesntexist
 Source: "public\api\*"; DestDir: "{app}\public\api"; Flags: ignoreversion recursesubdirs createallsubdirs
 

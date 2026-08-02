@@ -82,9 +82,10 @@ final class LicenseManager
             );
         } else {
             Database::execute(
-                "INSERT INTO licencas (cliente_id, uuid, token, status, validade, ultima_validacao)
-                 VALUES (1, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                "INSERT INTO licencas (cliente_id, chave, uuid, token, status, validade, ultima_validacao)
+                 VALUES (1, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
                 [
+                    $this->generateLicenseKey(),
                     $uuid,
                     $token,
                     strtoupper($licenseData['status']),
@@ -92,5 +93,10 @@ final class LicenseManager
                 ]
             );
         }
+    }
+
+    private function generateLicenseKey(): string
+    {
+        return strtoupper(bin2hex(random_bytes(6)));
     }
 }

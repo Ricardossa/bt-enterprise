@@ -18,7 +18,3 @@ INSERT OR IGNORE INTO guiches (codigo, nome, icone, cor) VALUES
 
 -- 4. VÍNCULO INICIAL
 INSERT OR IGNORE INTO guiche_servicos (guiche_id, servico_id) VALUES (1, 1);
-
--- 5. OPERADOR ADMIN (Senha: admin123)
-INSERT OR IGNORE INTO operadores (nome, login, senha, nivel, guiche_id, servico_id) VALUES
-('Administrador', 'admin', '$2y$12$Wxpv9lAxiIvUj9S473EQKu0LIAxzM2v/rjLnqPbnneZ314Uv1M5sK', 'ADMIN', 1, 1);
