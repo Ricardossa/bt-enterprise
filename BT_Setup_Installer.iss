@@ -3,6 +3,7 @@
 #define MyAppPublisher "Brandão Tech"
 #define MyAppURL "http://brandaotech.com.br"
 #define MyAppExeName "Ligar_Sistema.bat"
+#define MyIconName "favicon.ico"
 
 [Setup]
 AppId={{B0E4B4B2-8A73-4C62-9D4B-000000000001}
@@ -13,6 +14,8 @@ AppPublisherURL={#MyAppURL}
 DefaultDirName={commonpf}\BrandaoTech\BTQueue
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
+; Tenta usar o ícone oficial se ele existir na pasta
+SetupIconFile={#MyIconName}
 ; Requer privilégios para instalar serviços do Windows
 PrivilegesRequired=admin
 OutputDir=output
@@ -36,8 +39,8 @@ Source: ".\database\banco.db"; DestDir: "{app}\database"; Flags: ignoreversion o
 Source: ".\config\config.json"; DestDir: "{app}\config"; Flags: ignoreversion onlyifdoesntexist
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyIconName}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\{#MyIconName}"
 
 [Run]
 ; Registra e inicia os serviços do Windows usando o WinSW
