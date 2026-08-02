@@ -3,7 +3,7 @@
   <name>BT Queue - Core Server</name>
   <description>Motor principal da aplicação BT Queue Enterprise (Porta 8090)</description>
   <executable>%BASE%\..\runtime\php\php.exe</executable>
-  <arguments>-S 0.0.0.0:8090 -t www\public</arguments>
+  <arguments>-S 0.0.0.0:8090 -t public</arguments>
   <log mode="roll"></log>
   <onfailure action="restart" delay="10 sec"/>
   <stopparentprocessfirst>true</stopparentprocessfirst>

@@ -4,7 +4,7 @@ pushd "%~dp0"
 title BT Queue Enterprise - Manager
 color 0b
 
-:: --- VERIFICAÇÃO DE PRIVILÉGIOS ADMINISTRATIVOS ---
+:: --- VERIFICACAO DE PRIVILEGIOS ADMINISTRATIVOS ---
 net session >nul 2>&1
 if %errorLevel% neq 0 (
     echo [!] O sistema precisa de privilegios de ADMINISTRADOR.
@@ -18,7 +18,7 @@ echo   🚀 BT QUEUE ENTERPRISE - GERENCIADOR DO SISTEMA
 echo ============================================================
 echo.
 
-:: 1. VERIFICA SE O SERVIÇO EXISTE
+:: 1. VERIFICA SE O SERVICO EXISTE
 sc query BTQueueServer > nul 2>&1
 if %errorlevel% neq 0 (
     echo [!] O servico BT Queue nao esta instalado.
@@ -27,28 +27,22 @@ if %errorlevel% neq 0 (
     goto OPEN_BROWSER
 )
 
-:: 2. VERIFICA SE ESTÁ RODANDO
+:: 2. VERIFICA SE ESTA RODANDO
 for /f "tokens=4" %%s in ('sc query BTQueueServer ^| findstr STATE') do set "STATE=%%s"
 
 if "%STATE%" neq "RUNNING" (
     echo [!] O sistema esta desligado.
     echo.
-    set /p choice="Deseja ligar o sistema agora? (S/N): "
-    if /i "%choice%"=="S" (
-        echo [ ] Ligando motores...
-        net start BTQueueServer
-        if %errorlevel% neq 0 (
-            echo.
-            echo ❌ ERRO: Nao foi possivel iniciar o servico.
-            echo Tente executar este arquivo como ADMINISTRADOR.
-            pause
-            exit
-        )
-        net start BTQueuePrinter
-        timeout /t 5 /nobreak > nul
-    ) else (
+    echo [ ] Ligando motores...
+    net start BTQueueServer
+    if %errorlevel% neq 0 (
+        echo.
+        echo ❌ ERRO: Nao foi possivel iniciar o servico.
+        pause
         exit
     )
+    net start BTQueuePrinter
+    timeout /t 5 /nobreak > nul
 )
 
 :OPEN_BROWSER
@@ -59,9 +53,7 @@ if %errorlevel% neq 0 (
     start /min wscript.exe "BT_Sync_Service.vbs"
 )
 
-echo ✅ SISTEMA EM OPERAÇÃO!
-echo [ ] Aguardando estabilizacao dos motores...
-timeout /t 2 /nobreak > nul
+echo ✅ SISTEMA EM OPERACAO!
 echo [ ] Abrindo painel de atendimento...
 powershell -Command "Start-Process 'http://localhost:8090/index.php'"
 

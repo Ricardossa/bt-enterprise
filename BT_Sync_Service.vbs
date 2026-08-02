@@ -1,7 +1,7 @@
 Set WshShell = CreateObject("WScript.Shell")
 strPath = Left(WScript.ScriptFullName, InStrRev(WScript.ScriptFullName, "\"))
 phpExe = strPath & "runtime\php\php.exe"
-pulseScript = strPath & "www\public\pulse.php"
+pulseScript = strPath & "public\pulse.php"
 
 Do
     ' Executa o script de pulso via CLI de forma oculta
