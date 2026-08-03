@@ -7,7 +7,76 @@ use BTQueue\Core\Database;
 use BTQueue\Core\DatabaseInstaller;
 use BTQueue\Core\MasterSync\SyncService;
 
-$step = (int)($_GET['step'] ?? 1);
+function activatePin(string $masterUrl, string $pin): array
+{
+    $payload = json_encode(['codigo' => $pin]);
+    $trimUrl = rtrim($masterUrl, '/');
+    if (preg_match('#/sync\.php$#i', $trimUrl)) {
+        $endpoint = preg_replace('#/sync\.php$#i', '/ativar.php', $trimUrl);
+    } elseif (preg_match('#/api/v1$#i', $trimUrl)) {
+        $endpoint = $trimUrl . '/ativar.php';
+    } else {
+        $endpoint = $trimUrl . '/api/v1/ativar.php';
+    }
+
+    $ch = curl_init($endpoint);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Content-Length: ' . strlen($payload)
+    ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    if ($response === false) {
+        return ['success' => false, 'message' => 'Falha ao conectar à Platform Master: ' . $error];
+    }
+
+    $data = json_decode($response, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        return ['success' => false, 'message' => 'Resposta inválida da Platform Master.'];
+    }
+
+    if ($httpCode >= 400 || empty($data['success'])) {
+        return ['success' => false, 'message' => $data['message'] ?? 'Falha ao ativar código PIN.'];
+    }
+
+    $payload = $data['data'] ?? [];
+    if (empty($payload['uuid']) || empty($payload['token'])) {
+        return ['success' => false, 'message' => 'Resposta da Platform não contém uuid/token.'];
+    }
+
+    return ['success' => true, 'uuid' => $payload['uuid'], 'token' => $payload['token']];
+}
+
+function parseQuickLoad(string $quickLoad): array
+{
+    $parts = array_map('trim', explode('|', $quickLoad));
+    if (count($parts) !== 3 || empty($parts[0]) || empty($parts[1]) || empty($parts[2])) {
+        return [];
+    }
+    return ['master_url' => $parts[0], 'uuid' => $parts[1], 'token' => $parts[2]];
+}
+
+function generateUuid(): string
+{
+    return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+        mt_rand(0, 0xffff),
+        mt_rand(0, 0x0fff) | 0x4000,
+        mt_rand(0, 0x3fff) | 0x8000,
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    );
+}
+
+$step = (int)($_POST['step'] ?? $_GET['step'] ?? 1);
 $error = '';
 $success_msg = '';
 
@@ -25,7 +94,7 @@ $all_ok = !in_array(false, $requirements, true);
 // Lógica de Transição de Passos
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // PASSO 2: Inicializar Banco
+    // PASSO 2: Inicializar Banco (Blindado contra destruição)
     if ($step === 2) {
         $installer = new DatabaseInstaller();
         $res = $installer->install();
@@ -42,29 +111,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $url = trim($_POST['master_url'] ?? '');
         $uuid = trim($_POST['uuid'] ?? '');
         $token = trim($_POST['token'] ?? '');
+        $quickLoad = trim($_POST['quick_load'] ?? '');
+        $pinCode = trim($_POST['pin_code'] ?? '');
 
-        if (!$url || !$uuid || !$token) {
-            $error = "Todos os campos da Master são obrigatórios.";
-        } else {
-            Database::execute("INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES ('master_url', ?)", [$url]);
-            Database::execute("INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES ('uuid', ?)", [$uuid]);
-            Database::execute("INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES ('token', ?)", [$token]);
-
-            $licenseKey = strtoupper(bin2hex(random_bytes(6)));
-
-            // Tenta criar licença inicial no banco
-            Database::execute(
-                "INSERT OR REPLACE INTO licencas (cliente_id, chave, uuid, token, status, validade) VALUES (1, ?, ?, ?, ?, 'ATIVA', date('now', '+1 year'))",
-                [$licenseKey, $uuid, $token, 'ATIVA']
-            );
-
-            $sync = new SyncService();
-            $res = $sync->synchronize();
-            if ($res['success']) {
-                header('Location: setup.php?step=4&ok=2');
-                exit;
+        if ($quickLoad !== '') {
+            $quickData = parseQuickLoad($quickLoad);
+            if (!$quickData) {
+                $error = 'Carga Rápida inválida. Use o bloco no formato master_url|uuid|token.';
             } else {
-                $error = "Conectado ao banco, mas falha no sincronismo MasterSync: " . $res['message'];
+                $url = $quickData['master_url'];
+                $uuid = $quickData['uuid'];
+                $token = $quickData['token'];
+            }
+        } elseif ($pinCode !== '') {
+            if (!$url) {
+                $error = 'Informe a URL da Master antes de usar o PIN de ativação.';
+            } else {
+                $pinResult = activatePin($url, $pinCode);
+                if (!$pinResult['success']) {
+                    $error = $pinResult['message'];
+                } else {
+                    $uuid = $pinResult['uuid'];
+                    $token = $pinResult['token'];
+                }
+            }
+        }
+
+        if (!$error) {
+            if (!$url || !$uuid || !$token) {
+                $error = 'Informe UUID/token ou use Carga Rápida / PIN para ativar a licença.';
+            } else {
+                Database::execute("INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES ('master_url', ?)", [$url]);
+                Database::execute("INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES ('uuid', ?)", [$uuid]);
+                Database::execute("INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES ('token', ?)", [$token]);
+
+                $cliente = Database::fetch("SELECT id FROM clientes ORDER BY id LIMIT 1");
+                if (!$cliente) {
+                    $clientUuid = generateUuid();
+                    Database::execute(
+                        "INSERT INTO clientes (uuid, nome, documento) VALUES (?, ?, ?)",
+                        [$clientUuid, 'Cliente Local', '00000000000']
+                    );
+                    $clienteId = Database::lastInsertId();
+                } else {
+                    $clienteId = (int)$cliente['id'];
+                }
+
+                $licenseKey = strtoupper(bin2hex(random_bytes(6)));
+
+                // Tenta criar licença inicial no banco
+                Database::execute(
+                    "INSERT OR REPLACE INTO licencas (cliente_id, chave, uuid, token, status, validade) VALUES (?, ?, ?, ?, ?, date('now', '+1 year'))",
+                    [$clienteId, $licenseKey, $uuid, $token, 'ATIVA']
+                );
+
+                $sync = new SyncService();
+                $res = $sync->synchronize();
+                if ($res['success']) {
+                    header('Location: setup.php?step=4&ok=2');
+                    exit;
+                } else {
+                    $error = "Conectado ao banco, mas falha no sincronismo MasterSync: " . $res['message'];
+                }
             }
         }
     }
@@ -139,7 +247,8 @@ $pageTitle = 'Setup Wizard - BT Queue Enterprise';
         </div>
     <?php else: ?>
 
-        <form method="POST">
+        <form method="POST" action="setup.php?step=<?= $step ?>">
+            <input type="hidden" name="step" value="<?= $step ?>">
 
             <?php if ($step === 1): ?>
                 <h3>Verificação de Saúde do Windows</h3>
@@ -166,18 +275,28 @@ $pageTitle = 'Setup Wizard - BT Queue Enterprise';
 
             <?php if ($step === 3): ?>
                 <h3>Provisionamento MasterSync</h3>
-                <p style="color: var(--text2); margin-bottom: 20px;">Insira os códigos gerados na sua Master Platform para vincular esta unidade à sua conta.</p>
+                <p style="color: var(--text2); margin-bottom: 20px;">Use Carga Rápida ou PIN para ativar esta unidade, ou insira UUID/token manualmente.</p>
                 <div class="form-group">
-                    <label>URL da Master</label>
-                    <input type="text" name="master_url" class="form-control" value="http://api.brandaotech.com.br:8080/api/v1/sync.php">
+                    <label>Carga Rápida</label>
+                    <textarea name="quick_load" class="form-control" rows="3" placeholder="Cole aqui o bloco master_url|uuid|token"></textarea>
+                </div>
+                <div style="display:flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
+                    <div class="form-group" style="flex:1; min-width:220px;">
+                        <label>URL da Master</label>
+                        <input type="text" name="master_url" class="form-control" value="http://api.brandaotech.com.br:8080/api/v1/sync.php">
+                    </div>
+                    <div class="form-group" style="flex:1; min-width:220px;">
+                        <label>PIN de Ativação</label>
+                        <input type="text" name="pin_code" class="form-control" placeholder="Digite o PIN aqui">
+                    </div>
                 </div>
                 <div class="form-group" style="margin-top: 15px;">
                     <label>UUID da Unidade</label>
-                    <input type="text" name="uuid" class="form-control" placeholder="Cole o UUID aqui" required>
+                    <input type="text" name="uuid" class="form-control" placeholder="Cole o UUID aqui">
                 </div>
                 <div class="form-group" style="margin-top: 15px;">
                     <label>Token de Segurança</label>
-                    <input type="text" name="token" class="form-control" placeholder="Cole o Token aqui" required>
+                    <input type="text" name="token" class="form-control" placeholder="Cole o Token aqui">
                 </div>
                 <button type="submit" class="bt-button bt-primary" style="width: 100%; margin-top: 25px;">ATIVAR LICENÇA</button>
             <?php endif; ?>

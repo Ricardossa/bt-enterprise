@@ -1,28 +1,11 @@
 -- ============================================================
--- BT QUEUE ENTERPRISE - SCHEMA OFICIAL V4.2 (SECURE & ALIGNED)
+-- BT QUEUE ENTERPRISE - SCHEMA OFICIAL V5.0 (NON-DESTRUCTIVE)
 -- ============================================================
-
-PRAGMA foreign_keys = OFF;
-
--- LIMPEZA DE TABELAS EXISTENTES (PARA INSTALAÇÃO LIMPA)
-DROP TABLE IF EXISTS system_info;
-DROP TABLE IF EXISTS clientes;
-DROP TABLE IF EXISTS licencas;
-DROP TABLE IF EXISTS servicos;
-DROP TABLE IF EXISTS guiches;
-DROP TABLE IF EXISTS guiche_servicos;
-DROP TABLE IF EXISTS senhas;
-DROP TABLE IF EXISTS operadores;
-DROP TABLE IF EXISTS configuracoes;
-DROP TABLE IF EXISTS sync_queue;
-DROP TABLE IF EXISTS atividades;
-DROP TABLE IF EXISTS promocoes;
-DROP TABLE IF EXISTS migrations;
 
 PRAGMA foreign_keys = ON;
 
 -- 1. IDENTIDADE DA INSTALAÇÃO
-CREATE TABLE system_info (
+CREATE TABLE IF NOT EXISTS system_info (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     installation_uuid TEXT NOT NULL UNIQUE,
     empresa_uuid TEXT,
@@ -40,7 +23,7 @@ CREATE TABLE system_info (
 );
 
 -- 2. CLIENTES
-CREATE TABLE clientes (
+CREATE TABLE IF NOT EXISTS clientes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     uuid TEXT NOT NULL UNIQUE,
     nome TEXT NOT NULL,
@@ -49,7 +32,7 @@ CREATE TABLE clientes (
 );
 
 -- 3. LICENÇAS
-CREATE TABLE licencas (
+CREATE TABLE IF NOT EXISTS licencas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cliente_id INTEGER NOT NULL,
     chave TEXT NOT NULL UNIQUE,
@@ -65,7 +48,7 @@ CREATE TABLE licencas (
 );
 
 -- 4. SERVIÇOS
-CREATE TABLE servicos (
+CREATE TABLE IF NOT EXISTS servicos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     codigo TEXT NOT NULL UNIQUE,
     nome TEXT NOT NULL,
@@ -81,7 +64,7 @@ CREATE TABLE servicos (
 );
 
 -- 5. GUICHÊS
-CREATE TABLE guiches (
+CREATE TABLE IF NOT EXISTS guiches (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     codigo TEXT NOT NULL UNIQUE,
     nome TEXT NOT NULL,
@@ -92,8 +75,8 @@ CREATE TABLE guiches (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 6. VÍNCULO GUICHÊ-SERVIÇO (Muitos para Muitos)
-CREATE TABLE guiche_servicos (
+-- 6. VÍNCULO GUICHÊ-SERVIÇO
+CREATE TABLE IF NOT EXISTS guiche_servicos (
     guiche_id INTEGER NOT NULL,
     servico_id INTEGER NOT NULL,
     PRIMARY KEY (guiche_id, servico_id),
@@ -102,13 +85,13 @@ CREATE TABLE guiche_servicos (
 );
 
 -- 7. SENHAS
-CREATE TABLE senhas (
+CREATE TABLE IF NOT EXISTS senhas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     uuid TEXT NOT NULL UNIQUE,
     cliente_uuid TEXT NOT NULL,
     servico_id INTEGER,
     guiche_id INTEGER,
-    device_id TEXT, -- Identificador do celular/aparelho
+    device_id TEXT,
     codigo TEXT NOT NULL,
     numero INTEGER NOT NULL,
     prefixo TEXT NOT NULL,
@@ -125,7 +108,7 @@ CREATE TABLE senhas (
 );
 
 -- 8. OPERADORES
-CREATE TABLE operadores (
+CREATE TABLE IF NOT EXISTS operadores (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL,
     login TEXT NOT NULL UNIQUE,
@@ -141,7 +124,7 @@ CREATE TABLE operadores (
 );
 
 -- 9. CONFIGURAÇÕES
-CREATE TABLE configuracoes (
+CREATE TABLE IF NOT EXISTS configuracoes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     chave TEXT NOT NULL UNIQUE,
     valor TEXT,
@@ -152,7 +135,7 @@ CREATE TABLE configuracoes (
 );
 
 -- 10. SYNC QUEUE
-CREATE TABLE sync_queue (
+CREATE TABLE IF NOT EXISTS sync_queue (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     evento TEXT NOT NULL,
     entidade TEXT NOT NULL,
@@ -167,7 +150,7 @@ CREATE TABLE sync_queue (
 );
 
 -- 11. ATIVIDADES
-CREATE TABLE atividades (
+CREATE TABLE IF NOT EXISTS atividades (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tipo TEXT DEFAULT 'INFO',
     nivel TEXT DEFAULT 'INFO',
@@ -179,7 +162,7 @@ CREATE TABLE atividades (
 );
 
 -- 12. PROMOÇÕES
-CREATE TABLE promocoes (
+CREATE TABLE IF NOT EXISTS promocoes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     titulo TEXT NOT NULL,
     descricao TEXT,
@@ -192,7 +175,7 @@ CREATE TABLE promocoes (
 );
 
 -- 13. CONTROLE DE MIGRAÇÕES
-CREATE TABLE migrations (
+CREATE TABLE IF NOT EXISTS migrations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     arquivo TEXT UNIQUE,
     checksum TEXT,
@@ -200,7 +183,7 @@ CREATE TABLE migrations (
 );
 
 -- ÍNDICES
-CREATE INDEX idx_senhas_status ON senhas(status);
-CREATE INDEX idx_senhas_uuid ON senhas(uuid);
-CREATE INDEX idx_sync_status ON sync_queue(sincronizado);
-CREATE INDEX idx_atividades_data ON atividades(data_criacao);
+CREATE INDEX IF NOT EXISTS idx_senhas_status ON senhas(status);
+CREATE INDEX IF NOT EXISTS idx_senhas_uuid ON senhas(uuid);
+CREATE INDEX IF NOT EXISTS idx_sync_status ON sync_queue(sincronizado);
+CREATE INDEX IF NOT EXISTS idx_atividades_data ON atividades(data_criacao);

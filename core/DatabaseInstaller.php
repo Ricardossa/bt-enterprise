@@ -29,16 +29,16 @@ final class DatabaseInstaller
                 mkdir(dirname($this->dbPath), 0775, true);
             }
 
-            // [NOVO] Verificação de Integridade de Versão
-            // Se o banco existe, verificamos se ele já tem a tabela de identidade (system_info)
-            // Se não tiver, ele é um banco de versão antiga incompatível, então deletamos para criar o novo.
+            // [PROTEÇÃO] Nunca delete um banco que já possui dados vitais
             if (file_exists($this->dbPath)) {
                 $dbTemp = new PDO('sqlite:' . $this->dbPath);
-                $check = $dbTemp->query("SELECT name FROM sqlite_master WHERE type='table' AND name='system_info'")->fetch();
-                $dbTemp = null; // Fecha a conexão para permitir o delete
+                // Verifica se já existe um UUID gerado (sinal de banco em uso)
+                $hasUuid = $dbTemp->query("SELECT installation_uuid FROM system_info LIMIT 1")->fetch();
+                $dbTemp = null;
 
-                if (!$check) {
-                    @unlink($this->dbPath);
+                if ($hasUuid) {
+                    $results[] = "ℹ️ Banco de dados preservado (Instalação ativa detectada).";
+                    return ['success' => true, 'message' => 'Estrutura preservada.', 'details' => $results];
                 }
             }
 
