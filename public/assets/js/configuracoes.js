@@ -57,4 +57,32 @@ document.addEventListener("DOMContentLoaded", async () => {
             alert("Erro ao salvar configurações.");
         }
     });
+
+    // --- LÓGICA DE BACKUP ---
+    const btnBackup = document.getElementById("btnFazerBackup");
+    if (btnBackup) {
+        btnBackup.addEventListener("click", async () => {
+            if (!confirm("Isso enviará uma cópia do banco de dados para a Master. Continuar?")) return;
+
+            btnBackup.disabled = true;
+            btnBackup.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ENVIANDO...';
+
+            try {
+                const res = await fetch("backup.php");
+                const json = await res.json();
+
+                if (json.success) {
+                    alert("✅ Backup realizado com sucesso!");
+                } else {
+                    alert("❌ Erro no backup: " + json.message);
+                }
+            } catch (err) {
+                alert("❌ Falha crítica na conexão de backup.");
+            } finally {
+                btnBackup.disabled = false;
+                btnBackup.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> REALIZAR BACKUP AGORA';
+                location.reload();
+            }
+        });
+    }
 });

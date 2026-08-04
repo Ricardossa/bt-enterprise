@@ -70,6 +70,19 @@ include __DIR__ . '/includes/header.php';
                 </a>
             </section>
 
+            <section class="config-card" style="border-left: 4px solid var(--success);">
+                <div class="config-section-title"><i class="fa-solid fa-shield-halved"></i> Brandão Tech SafeBackup</div>
+                <p style="color:var(--text2); font-size:13px; margin-bottom:15px;">Proteja os dados do cliente enviando cópias diárias para a nuvem.</p>
+
+                <div id="backup-status" style="padding:10px; background:rgba(0,0,0,0.2); border-radius:10px; font-size:12px; margin-bottom:15px;">
+                    Estado: <span style="color:var(--success);">Ativo</span> | Último: <strong>Nunca realizado</strong>
+                </div>
+
+                <button id="btnFazerBackup" class="bt-button bt-primary" style="width:100%;">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> REALIZAR BACKUP AGORA
+                </button>
+            </section>
+
         </div>
 
         <!-- COLUNA 2: ATALHOS DE MÓDULOS -->
