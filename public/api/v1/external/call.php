@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 /**
- * BT Integration Hub - Chamada Externa (Hospitalar)
+ * BT Integration Hub - Chamada Externa (Hospitalar) v1.1
+ * Requer Token de Segurança no Header
  */
 
 require_once __DIR__ . '/../../../../bootstrap.php';
 use BTQueue\Core\Integration\IntegrationHubController;
+use BTQueue\Core\Database;
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -17,7 +19,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// TODO: Adicionar validação de API Key para segurança de integração em produção
+// --- VALIDAÇÃO DE SEGURANÇA ---
+$headers = array_change_key_case(getallheaders(), CASE_LOWER);
+$tokenEnviado = $headers['x-integration-token'] ?? '';
+
+$config = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'integration_token'");
+$tokenOficial = $config['valor'] ?? '';
+
+if (empty($tokenOficial) || $tokenEnviado !== $tokenOficial) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Acesso negado: Token de integração inválido ou não configurado.']);
+    exit;
+}
+
+// --- PROCESSAMENTO DO PAYLOAD ---
 $input = file_get_contents('php://input');
 $payload = json_decode($input, true);
 

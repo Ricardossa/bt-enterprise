@@ -40,16 +40,16 @@ final class IntegrationHubController
                 "INSERT INTO senhas (
                     uuid, cliente_uuid, codigo, numero, prefixo,
                     nome_cliente, atendente_nome, atendente,
-                    status, emitida_em, chamada_em, created_at
+                    tipo_atendimento, status, emitida_em, chamada_em, created_at
                 ) VALUES (
                     ?, 'HIS-INTEGRATION', 'HIS', 0, 'H',
                     ?, ?, ?,
-                    'CHAMANDO', ?, ?, ?
+                    ?, 'CHAMANDO', ?, ?, ?
                 )",
                 [
                     $uuid,
                     $paciente, $profissional ?: $local, $profissional ?: $local,
-                    $agora, $agora, $agora
+                    $prioridade, $agora, $agora, $agora
                 ]
             );
 
@@ -66,7 +66,8 @@ final class IntegrationHubController
                         'senha' => $paciente, // Na TV Hospitalar, a "senha" é o nome
                         'guiche' => $local,   // O "guichê" é a sala/consultório
                         'profissional' => $profissional,
-                        'is_hospital' => true
+                        'is_hospital' => true,
+                        'tipo_atendimento' => $prioridade
                     ], JSON_UNESCAPED_UNICODE)
                 ]
             );

@@ -123,8 +123,22 @@ BT.tv = {
     showCallOnScreen(call) {
         const elSenha = document.getElementById('main-ticket');
         const elGuiche = document.getElementById('main-guiche');
+        const elLabel = document.querySelector('.label-chamada');
+
         if (elSenha) elSenha.textContent = call.senha;
         if (elGuiche) elGuiche.textContent = call.guiche_nome || "ATENDIMENTO";
+
+        // Ajusta rótulo hospitalar e PRIORIDADE
+        if (elLabel) {
+            let texto = call.is_hospital ? 'Paciente em Atendimento' : 'Senha em Atendimento';
+            if (call.tipo_atendimento === 'PREFERENCIAL' || call.tipo_atendimento === 'PRIORITARIO') {
+                texto = '⚠️ ATENDIMENTO PREFERENCIAL';
+                document.body.classList.add('priority-alert');
+            } else {
+                document.body.classList.remove('priority-alert');
+            }
+            elLabel.textContent = texto;
+        }
 
         elSenha.classList.remove('pulse-ticket');
         void elSenha.offsetWidth;
@@ -144,7 +158,8 @@ BT.tv = {
         return new Promise((resolve) => {
             if (!this.isVozHabilitada) return resolve();
 
-            const texto = `Senha ${call.senha}, dirigir-se ao ${call.guiche_nome}`;
+            const prefixo = call.is_hospital ? 'Paciente' : 'Senha';
+            const texto = `${prefixo} ${call.senha}, dirigir-se ao ${call.guiche_nome}`;
 
             // --- CANAL 1: PONTE NATIVA ANDROID (ALTA PERFORMANCE) ---
             if (typeof AndroidVoz !== 'undefined') {

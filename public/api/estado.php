@@ -35,13 +35,22 @@ try {
         $campoCodigo = in_array('codigo', $cols) ? 's.codigo' : 's.senha';
 
         $estado['historico'] = Database::fetchAll(
-            "SELECT s.id, $campoCodigo as senha, g.nome as guiche_nome, s.chamada_em
+            "SELECT s.id, $campoCodigo as senha, g.nome as guiche_nome, s.chamada_em,
+                    s.nome_cliente, s.atendente_nome, s.tipo_atendimento
              FROM senhas s
              LEFT JOIN guiches g ON g.id = s.guiche_id
              WHERE s.status IN ('CHAMANDO', 'FINALIZADA')
              ORDER BY s.id DESC
              LIMIT 5"
         );
+
+        // --- ENRIQUECIMENTO PARA TV HOSPITALAR ---
+        foreach ($estado['historico'] as &$item) {
+            $item['is_hospital'] = !empty($item['nome_cliente']);
+            if ($item['is_hospital']) {
+                $item['senha'] = $item['nome_cliente']; // Força o nome no lugar da senha
+            }
+        }
     } catch (Exception $e) {
         $estado['historico'] = [];
     }
