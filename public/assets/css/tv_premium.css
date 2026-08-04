@@ -67,19 +67,19 @@ body {
 }
 
 .ticket-giant {
-    font-size: 180px; /* Reduzido de 280px para suportar nomes */
+    font-size: 280px; /* Impacto Cinema */
     font-weight: 900;
-    line-height: 1.1;
+    line-height: 0.85; /* Ajuste para evitar sobreposição */
     color: var(--text-white);
     text-shadow: 0 0 50px rgba(29, 180, 255, 0.4);
-    margin: 20px 0;
-    width: 90%;
+    margin: 0; /* Remove margens fixas */
+    width: 95%;
     text-align: center;
     word-wrap: break-word;
     display: flex;
     align-items: center;
     justify-content: center;
-    max-height: 50vh;
+    flex: 1; /* Ocupa o espaço disponível sem empurrar os outros */
     overflow: hidden;
 }
 
@@ -95,7 +95,7 @@ body {
 .tv-sidebar {
     flex: 3;
     background: var(--side-bg);
-    padding: 100px 30px 40px;
+    padding: 100px 20px 40px; /* Reduzi um pouco o padding lateral */
     display: flex;
     flex-direction: column;
     gap: 30px;
@@ -123,7 +123,15 @@ body {
     align-items: center;
 }
 
-.history-ticket { font-size: 36px; font-weight: 800; color: var(--text-white); }
+.history-ticket {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text-white);
+    max-width: 70%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .history-guiche { font-size: 18px; color: var(--neon-blue); text-transform: uppercase; }
 
 /* ANIMAÇÃO DE CHAMADA */

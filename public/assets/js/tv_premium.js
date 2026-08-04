@@ -128,17 +128,19 @@ BT.tv = {
         if (elSenha) {
             elSenha.textContent = call.senha;
 
-            // --- SMART FONT SIZE (HOSPITAL EDITION) ---
-            // Se for um nome longo, reduzimos o tamanho da fonte dinamicamente
+            // --- SMART FONT SIZE (DIAMOND v2) ---
+            // Regra mais agressiva para nomes muito longos e preservação de senhas
             const len = call.senha.length;
-            if (len > 15) {
-                elSenha.style.fontSize = '80px';
-            } else if (len > 10) {
-                elSenha.style.fontSize = '120px';
-            } else if (len > 5) {
-                elSenha.style.fontSize = '180px';
+            if (len <= 4) {
+                elSenha.style.fontSize = '320px'; // Aumentado para IMPACTO TOTAL em senhas
+            } else if (len <= 12) {
+                elSenha.style.fontSize = '200px';
+            } else if (len <= 20) {
+                elSenha.style.fontSize = '140px';
+            } else if (len <= 30) {
+                elSenha.style.fontSize = '100px';
             } else {
-                elSenha.style.fontSize = '280px'; // Padrão para senhas curtas
+                elSenha.style.fontSize = '70px'; // Extremo para nomes de 35+ caracteres
             }
         }
 
@@ -225,12 +227,17 @@ BT.tv = {
 
         this.lastHistoryHash = currentHash;
 
-        elHistory.innerHTML = data.historico.map(h => `
-            <li class="history-item animate__animated animate__fadeInRight">
-                <span class="history-ticket">${h.senha}</span>
-                <span class="history-guiche">${h.guiche_nome}</span>
-            </li>
-        `).join('');
+        elHistory.innerHTML = data.historico.map(h => {
+            const isName = h.senha.length > 6; // Nomes costumam ser maiores que senhas
+            const fontSize = isName ? '24px' : '36px';
+
+            return `
+                <li class="history-item animate__animated animate__fadeInRight">
+                    <span class="history-ticket" style="font-size: ${fontSize};">${h.senha}</span>
+                    <span class="history-guiche">${h.guiche_nome}</span>
+                </li>
+            `;
+        }).join('');
     }
 };
 
