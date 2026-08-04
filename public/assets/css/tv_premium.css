@@ -67,12 +67,20 @@ body {
 }
 
 .ticket-giant {
-    font-size: 280px;
+    font-size: 180px; /* Reduzido de 280px para suportar nomes */
     font-weight: 900;
-    line-height: 1;
+    line-height: 1.1;
     color: var(--text-white);
     text-shadow: 0 0 50px rgba(29, 180, 255, 0.4);
     margin: 20px 0;
+    width: 90%;
+    text-align: center;
+    word-wrap: break-word;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 50vh;
+    overflow: hidden;
 }
 
 .guiche-label {

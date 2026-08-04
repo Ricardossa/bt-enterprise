@@ -125,7 +125,23 @@ BT.tv = {
         const elGuiche = document.getElementById('main-guiche');
         const elLabel = document.querySelector('.label-chamada');
 
-        if (elSenha) elSenha.textContent = call.senha;
+        if (elSenha) {
+            elSenha.textContent = call.senha;
+
+            // --- SMART FONT SIZE (HOSPITAL EDITION) ---
+            // Se for um nome longo, reduzimos o tamanho da fonte dinamicamente
+            const len = call.senha.length;
+            if (len > 15) {
+                elSenha.style.fontSize = '80px';
+            } else if (len > 10) {
+                elSenha.style.fontSize = '120px';
+            } else if (len > 5) {
+                elSenha.style.fontSize = '180px';
+            } else {
+                elSenha.style.fontSize = '280px'; // Padrão para senhas curtas
+            }
+        }
+
         if (elGuiche) elGuiche.textContent = call.guiche_nome || "ATENDIMENTO";
 
         // Ajusta rótulo hospitalar e PRIORIDADE
