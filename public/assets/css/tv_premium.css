@@ -48,7 +48,8 @@ body {
 
 /* ÁREA PRINCIPAL (70%) */
 .tv-main {
-    flex: 7;
+    flex: 0 0 70%; /* Trava absoluta: Não cresce nem encolhe */
+    width: 70%;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -93,7 +94,8 @@ body {
 
 /* PAINEL LATERAL (30%) */
 .tv-sidebar {
-    flex: 3;
+    flex: 0 0 30%; /* Trava absoluta: Nunca sai do lugar */
+    width: 30%;
     background: var(--side-bg);
     padding: 100px 20px 40px; /* Reduzi um pouco o padding lateral */
     display: flex;

@@ -209,6 +209,15 @@ BT.tv = {
         });
     },
 
+    abbreviateName(name) {
+        if (!name || name.length <= 18) return name;
+        const parts = name.split(' ');
+        if (parts.length < 2) return name.substring(0, 18);
+        const first = parts[0];
+        const last = parts[parts.length - 1];
+        return `${first} ${parts[1][0]}. ${last}`; // Ex: ROBERTO D. PRADO
+    },
+
     updateUI(data) {
         const elHistory = document.getElementById('history-list');
         if (!elHistory || !data.historico) return;
@@ -216,10 +225,7 @@ BT.tv = {
         // --- MODO RESTAURAÇÃO (F5): Mostra a última chamada no meio sem piscar ---
         if (this.isFirstFetch && data.historico.length > 0) {
             const lastCall = data.historico[0];
-            const elSenha = document.getElementById('main-ticket');
-            const elGuiche = document.getElementById('main-guiche');
-            if (elSenha) elSenha.textContent = lastCall.senha;
-            if (elGuiche) elGuiche.textContent = lastCall.guiche_nome || "ATENDIMENTO";
+            this.showCallOnScreen(lastCall);
         }
 
         const currentHash = JSON.stringify(data.historico);
@@ -228,12 +234,13 @@ BT.tv = {
         this.lastHistoryHash = currentHash;
 
         elHistory.innerHTML = data.historico.map(h => {
-            const isName = h.senha.length > 6; // Nomes costumam ser maiores que senhas
+            const isName = h.senha.length > 6;
+            const displayName = isName ? this.abbreviateName(h.senha) : h.senha;
             const fontSize = isName ? '24px' : '36px';
 
             return `
                 <li class="history-item animate__animated animate__fadeInRight">
-                    <span class="history-ticket" style="font-size: ${fontSize};">${h.senha}</span>
+                    <span class="history-ticket" style="font-size: ${fontSize};">${displayName}</span>
                     <span class="history-guiche">${h.guiche_nome}</span>
                 </li>
             `;
