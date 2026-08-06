@@ -73,6 +73,23 @@ include __DIR__ . '/includes/header.php';
             </section>
 
             <section class="conn-card">
+                <h3 style="font-size:14px; color:var(--secondary); text-transform:uppercase; margin-bottom:20px;">⏰ Expediente (Segurança QR Code)</h3>
+                <p style="color:var(--text2); font-size:12px; margin-bottom:15px;">Defina o horário em que a emissão de senhas pelo QR Code estará ativa.</p>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Abertura</label>
+                        <input type="time" id="opening_time" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Fechamento</label>
+                        <input type="time" id="closing_time" class="form-control">
+                    </div>
+                </div>
+                <small style="color:var(--text2); display:block; margin-top:10px;">Fora deste horário, o link do QR Code (impresso ou digital) será bloqueado.</small>
+            </section>
+
+            <section class="conn-card">
                 <h3 style="font-size:14px; color:var(--secondary); text-transform:uppercase; margin-bottom:20px;">📱 Social e Slogan</h3>
                 <div class="form-group">
                     <label>Slogan da Empresa</label>

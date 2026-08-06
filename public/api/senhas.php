@@ -45,29 +45,52 @@ try {
         $deviceId = trim((string)($dados['device_id'] ?? ''));
         $tokenEnviado = trim((string)($dados['t'] ?? ''));
 
-        // --- VALIDAÇÃO DE SEGURANÇA (Anti-Fila Remota) ---
-        // Se a chamada vem do Mobile (sem estar logado como admin), exige o Token do Totem
+        // --- VALIDAÇÃO DE SEGURANÇA (Anti-Fila Remota & Horário de Atendimento) ---
         if (!\BTQueue\Core\Auth::autenticado()) {
-            $config = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'qr_security_salt'");
-            $salt = $config['valor'] ?? 'default_salt';
 
-            $valid = false;
-            // Valida o token para o minuto atual e os 2 minutos anteriores (janela de tolerância)
-            for ($i = 0; $i <= 2; $i++) {
-                $checkHash = md5($salt . date('YmdHi', strtotime("-$i minutes")));
-                if (hash_equals($checkHash, $tokenEnviado)) {
-                    $valid = true;
-                    break;
-                }
-            }
+            // 1. Verificação de Horário de Expediente
+            $config = Database::fetchAll("SELECT chave, valor FROM configuracoes WHERE chave IN ('opening_time', 'closing_time', 'qr_security_salt')");
+            $cfg = [];
+            foreach ($config as $c) { $cfg[$c['chave']] = $c['valor']; }
 
-            if (!$valid) {
+            $agora = date('H:i');
+            $abertura = $cfg['opening_time'] ?? '00:00';
+            $fechamento = $cfg['closing_time'] ?? '23:59';
+
+            if ($agora < $abertura || $agora > $fechamento) {
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'message' => '❌ QR Code Expirado. Por favor, escaneie novamente o código no Totem da loja.'
+                    'message' => "❌ ATENDIMENTO ENCERRADO. Nosso horário de funcionamento é das $abertura às $fechamento."
                 ], JSON_UNESCAPED_UNICODE);
                 exit;
+            }
+
+            // 2. Verificação de Token do QR Code (Se houver token enviado)
+            $salt = $cfg['qr_security_salt'] ?? 'default_salt';
+            $validToken = false;
+
+            if (!empty($tokenEnviado)) {
+                // Valida o token para o minuto atual e os 2 minutos anteriores
+                for ($i = 0; $i <= 2; $i++) {
+                    $checkHash = md5($salt . date('YmdHi', strtotime("-$i minutes")));
+                    if (hash_equals($checkHash, $tokenEnviado)) {
+                        $validToken = true;
+                        break;
+                    }
+                }
+
+                if (!$validToken) {
+                    http_response_code(403);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => '❌ QR Code Expirado. Por favor, escaneie novamente o código no Totem da loja.'
+                    ], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+            } else {
+                // SE NÃO TEM TOKEN (QR CODE IMPRESSO), OBRIGATÓRIO ESTAR NO HORÁRIO (já checado acima)
+                // TODO: No futuro, adicionar geofencing aqui para maior segurança do QR impresso.
             }
         }
 
