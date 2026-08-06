@@ -43,6 +43,33 @@ try {
 
         $servicoId = (int)($dados['servico_id'] ?? 0);
         $deviceId = trim((string)($dados['device_id'] ?? ''));
+        $tokenEnviado = trim((string)($dados['t'] ?? ''));
+
+        // --- VALIDAÇÃO DE SEGURANÇA (Anti-Fila Remota) ---
+        // Se a chamada vem do Mobile (sem estar logado como admin), exige o Token do Totem
+        if (!\BTQueue\Core\Auth::autenticado()) {
+            $config = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'qr_security_salt'");
+            $salt = $config['valor'] ?? 'default_salt';
+
+            $valid = false;
+            // Valida o token para o minuto atual e os 2 minutos anteriores (janela de tolerância)
+            for ($i = 0; $i <= 2; $i++) {
+                $checkHash = md5($salt . date('YmdHi', strtotime("-$i minutes")));
+                if (hash_equals($checkHash, $tokenEnviado)) {
+                    $valid = true;
+                    break;
+                }
+            }
+
+            if (!$valid) {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => '❌ QR Code Expirado. Por favor, escaneie novamente o código no Totem da loja.'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
 
         if ($servicoId <= 0) {
             http_response_code(400);

@@ -97,11 +97,11 @@ document.addEventListener('DOMContentLoaded', function(){
     const guiche  = document.getElementById('guiche');
     if(servico && operador.servico_id){
         servico.value = operador.servico_id;
-        // servico.setAttribute('disabled','disabled'); // [DESCONGELADO] Permite troca se necessário
+        servico.setAttribute('disabled','disabled'); // [CONGELADO] Bloqueia troca
     }
     if(guiche && operador.guiche_id){
         guiche.value = operador.guiche_id;
-        // guiche.setAttribute('disabled','disabled'); // [DESCONGELADO] Permite troca se necessário
+        guiche.setAttribute('disabled','disabled'); // [CONGELADO] Bloqueia troca
     }
 });
 </script>

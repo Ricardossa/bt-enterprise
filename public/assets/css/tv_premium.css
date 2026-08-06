@@ -138,12 +138,12 @@ body {
 
 /* ANIMAÇÃO DE CHAMADA */
 .flash-call {
-    animation: flash 0.8s ease-out;
+    animation: flash 1s ease-out;
 }
 
 @keyframes flash {
-    0% { background-color: var(--neon-blue); }
-    100% { background-color: transparent; }
+    0% { background-color: rgba(255, 255, 255, 0.4); filter: brightness(2); }
+    100% { background-color: transparent; filter: brightness(1); }
 }
 
 .pulse-ticket {

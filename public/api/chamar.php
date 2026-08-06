@@ -30,6 +30,13 @@ if (!$dados) {
 $servicoId = (int)($dados['servico_id'] ?? 0);
 $guicheId  = (int)($dados['guiche_id'] ?? 0);
 
+// --- TRAVA DE SEGURANÇA: CONGELAMENTO DE OPERADOR (Sprint Elite) ---
+$operador = Auth::operador();
+if ($operador && $operador['nivel'] !== 'ADMIN') {
+    if ($operador['servico_id'] > 0) $servicoId = (int)$operador['servico_id'];
+    if ($operador['guiche_id'] > 0) $guicheId = (int)$operador['guiche_id'];
+}
+
 if ($servicoId <= 0 || $guicheId <= 0) {
 
     http_response_code(400);

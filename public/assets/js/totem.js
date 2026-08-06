@@ -13,15 +13,12 @@ BT.totem = {
 
     idleTimeout: 60000, // 60 segundos de inatividade
     idleTimer: null,
+    currentToken: '',
 
     init() {
         this.carregarServicos();
         this.resetIdleTimer();
-
-        // Carrega o Modo Híbrido e QR Code usando as configurações injetadas no HTML
-        if (window.BT_TOTEM_CONFIG) {
-            this.gerarQRDigital(window.BT_TOTEM_CONFIG);
-        }
+        this.iniciarCicloToken();
 
         // Listeners globais para resetar o timer em qualquer toque (quando acordado)
         document.addEventListener('click', () => this.resetIdleTimer());
@@ -48,6 +45,24 @@ BT.totem = {
         // Obsoleto: Substituído pela injeção via HTML no init()
     },
 
+    async iniciarCicloToken() {
+        const fetchToken = async () => {
+            try {
+                const res = await fetch('api/totem_token.php');
+                const json = await res.json();
+                if (json.success) {
+                    this.currentToken = json.token;
+                    if (window.BT_TOTEM_CONFIG) {
+                        this.gerarQRDigital(window.BT_TOTEM_CONFIG);
+                    }
+                }
+            } catch (e) { console.error("Erro ao renovar token do Totem."); }
+        };
+
+        fetchToken();
+        setInterval(fetchToken, 30000); // Renova a cada 30 segundos
+    },
+
     gerarQRDigital(cfg) {
         // --- LÓGICA DE URL OFICIAL (Configurada na aba Conectividade) ---
         let base = (cfg.modo === "cloud" ? cfg.url_publica : cfg.url_local);
@@ -61,6 +76,9 @@ BT.totem = {
 
         // Garante que a barra final esteja correta e aponta para o mobile
         let pathMobile = "live_premium/index.php?new=1";
+        if (this.currentToken) {
+            pathMobile += "&t=" + this.currentToken;
+        }
 
         // --- SMART PATH DETECTION (Fix para Cliente vs Nuvem) ---
         let finalPath = "/";
@@ -72,7 +90,7 @@ BT.totem = {
 
         const destino = base.replace(/\/$/, "") + finalPath + pathMobile;
 
-        console.log("Gerando QR Oficial para:", destino);
+        console.log("Gerando QR Dinâmico:", destino);
 
         const qrContainer = document.getElementById('qrGiant');
         if (qrContainer) {

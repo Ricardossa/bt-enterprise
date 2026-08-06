@@ -6,7 +6,13 @@
 window.BT = window.BT || {};
 
 BT.emitter = {
+    currentToken: '',
+
     async init() {
+        // --- CAPTURA DE TOKEN DE SEGURANÇA ---
+        const urlParams = new URLSearchParams(window.location.search);
+        this.currentToken = urlParams.get('t') || '';
+
         // --- MASTER RESET: Limpa tudo se houver reset=1 ou new=1 na URL ---
         if (window.location.search.includes('reset=1') || window.location.search.includes('new=1')) {
             localStorage.removeItem('bt_premium_tickets');
@@ -55,7 +61,10 @@ BT.emitter = {
             const res = await fetch('../api/senhas.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ servico_id: id })
+                body: JSON.stringify({
+                    servico_id: id,
+                    t: this.currentToken // Envia o token dinâmico para validação
+                })
             });
             const json = await res.json();
             if (json.success) {

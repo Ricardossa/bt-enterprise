@@ -19,8 +19,9 @@ BT.tv = {
         this.updateClock();
         setInterval(() => this.updateClock(), 1000);
 
-        // Prepara o áudio (Ding-Dong) - Tentamos carregar, mas tratamos erro se não existir
-        this.ding = new Audio('assets/audio/ding.mp3');
+        // Prepara o áudio Premium (alert.mp3)
+        this.ding = new Audio('assets/audio/alert.mp3');
+        this.ding.load();
 
         // Inicia o motor de polling
         this.fetchState();
@@ -99,13 +100,14 @@ BT.tv = {
         try {
             this.showCallOnScreen(call);
 
-            // 1. Toca Sinal Sonoro
-            try {
-                await this.ding.play();
-                await new Promise(r => setTimeout(r, 1500));
-            } catch(e) { console.warn("Erro ao tocar Ding. Usuário deve interagir com a tela primeiro."); }
-
+            // 1. IMPACTO CINEMA: Toca Sinal Sonoro e Brilha a Tela
             this.toggleFlashing(true);
+            try {
+                this.ding.currentTime = 0;
+                await this.ding.play();
+                // Espera o som "respirar" (2.2 segundos de suspense)
+                await new Promise(r => setTimeout(r, 2200));
+            } catch(e) { console.warn("Erro ao tocar Áudio: Interação necessária."); }
 
             // 2. Executa Voz
             await this.speakCall(call);
