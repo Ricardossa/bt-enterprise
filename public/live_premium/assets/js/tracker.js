@@ -11,11 +11,34 @@ BT.tracker = {
     promoIdx: 0,
     polling: null,
     isCalling: false,
+    audioUnlocked: false,
 
     async init() {
         this.updateTicketList();
         this.startPolling();
+        this.checkAudioPermission();
         try { await this.loadPromos(); } catch(e) {}
+    },
+
+    checkAudioPermission() {
+        if (!this.audioUnlocked) {
+            document.getElementById('audio-unlock').style.display = 'block';
+        }
+    },
+
+    unlockAudio() {
+        this.audioUnlocked = true;
+        document.getElementById('audio-unlock').style.display = 'none';
+
+        // "Acorda" o motor de áudio e fala com um som silencioso
+        const ding = new Audio('../assets/audio/ding.mp3');
+        ding.volume = 0;
+        ding.play().catch(() => {});
+
+        if ('speechSynthesis' in window) {
+            const msg = new SpeechSynthesisUtterance('');
+            window.speechSynthesis.speak(msg);
+        }
     },
 
     updateTicketList() {
@@ -123,28 +146,39 @@ BT.tracker = {
 
     checkCalls(data) {
         const activeCall = data.find(t => t.status === 'CHAMANDO');
-        const overlay = document.getElementById('call-alert');
 
         if (activeCall) {
             if (!this.isCalling) {
-                this.playAlert();
+                this.playAlert(activeCall);
                 this.isCalling = true;
             }
-            overlay.style.display = 'flex';
-            document.getElementById('alert-guiche').textContent = 'LOCAL: ' + activeCall.guiche;
-            document.getElementById('alert-servico').textContent = activeCall.servico;
         } else {
             this.isCalling = false;
-            overlay.style.display = 'none';
         }
     },
 
-    playAlert() {
+    playAlert(ticket) {
+        if (!this.audioUnlocked) return;
+
         try {
-            const audio = new Audio('assets/audio/ding.mp3');
+            // 1. Toca o Ding
+            const audio = new Audio('../assets/audio/ding.mp3');
             audio.play();
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        } catch(e) {}
+
+            // 2. Vibração (Mobile)
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
+
+            // 3. Voz (Anunciar número)
+            if ('speechSynthesis' in window) {
+                setTimeout(() => {
+                    const text = `Sua vez! Senha ${ticket.senha}, dirigir-se ao ${ticket.guiche}`;
+                    const msg = new SpeechSynthesisUtterance(text);
+                    msg.lang = 'pt-BR';
+                    msg.rate = 0.9;
+                    window.speechSynthesis.speak(msg);
+                }, 1500);
+            }
+        } catch(e) { console.error("Audio error", e); }
     },
 
     finishSession() {

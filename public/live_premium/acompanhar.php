@@ -33,6 +33,10 @@ $baseUrl = $protocol . $_SERVER['HTTP_HOST'] . str_replace('live_premium/acompan
 
 <div id="app" class="live-container">
     <header class="header-premium">
+        <!-- BARRA DE DESBLOQUEIO DE ÁUDIO -->
+        <div id="audio-unlock" class="audio-unlock-bar animate__animated animate__fadeInDown" style="display:none;" onclick="BT.tracker.unlockAudio()">
+            <i class="fa-solid fa-volume-high"></i> CLIQUE AQUI PARA ATIVAR O SOM
+        </div>
         <?php
             $logoUrl = null;
             if (!empty($promo_logo)) {
