@@ -95,7 +95,7 @@ include __DIR__ . '/includes/header.php';
 
 <script src="assets/js/api.js?v=4.7"></script>
 <script src="assets/js/toast.js?v=4.7"></script>
-<script src="app_v2.js?v=5.7.0"></script>
+<script src="app_v2.js?v=5.8.0"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
