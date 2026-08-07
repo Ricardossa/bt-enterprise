@@ -83,17 +83,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         const hora = agd.data_agendamento.split(' ')[1].substring(0, 5);
                         const label = dados.label_cliente || 'Paciente';
 
-                        // --- LIMPEZA DE ELITE (Nome e Sobrenome apenas) ---
-                        let nomeLimpo = agd.nome_cliente
-                            .replace(/\(.*\)/g, '') // Remove parênteses
-                            .replace(/ATENDIMENTO|ZH/gi, '') // Remove palavras-chave
-                            .trim();
+                        // --- LIMPEZA DE ELITE BRANDÃO TECH (Foco no Fornecedor) ---
+                        let raw = agd.nome_cliente;
+                        let nomeExibir = "";
 
-                        let partes = nomeLimpo.split(' ').filter(p => p.length > 1);
-                        if (partes.length >= 2) {
-                            nomeLimpo = partes[0] + ' ' + partes[partes.length - 1];
+                        // 1. Tenta extrair o que está dentro dos parênteses (ex: CAIO LIMA)
+                        let match = raw.match(/\(([^)]+)\)/);
+                        if (match) {
+                            nomeExibir = match[1];
                         } else {
-                            nomeLimpo = partes[0] || 'Paciente';
+                            // 2. Fallback: Limpa lixo e pega Nome + Sobrenome
+                            let limpo = raw.replace(/ATENDIMENTO|ZH|NAILTON/gi, '').trim();
+                            let partes = limpo.split(' ').filter(p => p.length > 1);
+                            nomeExibir = (partes.length >= 2) ? (partes[0] + ' ' + partes[partes.length - 1]) : (partes[0] || label);
                         }
 
                         div.innerHTML = `
@@ -103,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div style="flex:1; text-align:left;">
                                     <span style="font-size:10px; color:var(--text3); text-transform:uppercase; display:block;">${label}</span>
-                                    <b style="color:#fff; font-size:16px; text-transform:uppercase;">${nomeLimpo}</b>
+                                    <b style="color:#fff; font-size:16px; text-transform:uppercase;">${nomeExibir}</b>
                                 </div>
                                 <button class="btn-chamar-agd" onclick="BT_OP.chamarAgendado(${agd.id})" style="background:rgba(255, 193, 7, 0.1); color:var(--warning); border:1px solid var(--warning); padding:8px 15px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer; transition:0.3s;">
                                     CHAMAR
