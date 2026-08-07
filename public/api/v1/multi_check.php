@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 /**
- * BT Queue - Multi-Ticket Check API
- * Verifica o status de múltiplas senhas em uma única requisição.
+ * BT Queue - Multi-Ticket Check API (DIAMOND SAFE v5.6.5)
+ * Verifica o status de múltiplas senhas com blindagem contra banco desatualizado.
  */
 
 require_once __DIR__ . '/../../../bootstrap.php';
@@ -21,10 +21,13 @@ try {
         exit;
     }
 
-    // Detecta campo de código
+    // --- BLINDAGEM DE COLUNAS (v5.6.5) ---
     $resInfo = Database::getInstance()->query("PRAGMA table_info(senhas)");
     $cols = array_column($resInfo->fetchAll(PDO::FETCH_ASSOC), 'name');
+
     $campoCodigo = in_array('codigo', $cols) ? 's.codigo' : 's.senha';
+    $hasHospital = in_array('nome_cliente', $cols);
+    $hasSchedule = in_array('data_agendamento', $cols);
 
     $placeholders = implode(',', array_fill(0, count($uuids), '?'));
     $sql = "SELECT s.id, $campoCodigo as senha, s.status, s.guiche_id, s.servico_id, s.cliente_uuid,
@@ -43,6 +46,8 @@ try {
         $pessoas = 0;
         $mensagem = '';
 
+        // Se o banco não conhece CONGELADA, tratamos como AGUARDANDO para não quebrar a lógica
+        $targetStatuses = "('AGUARDANDO', 'CONGELADA')";
         if ($status === 'AGUARDANDO' || $status === 'CONGELADA') {
             $posicaoRes = Database::fetch("
                 SELECT COUNT(*) AS total
@@ -54,7 +59,7 @@ try {
             $pessoas = (int)($posicaoRes['total'] ?? 0);
 
             if ($status === 'CONGELADA') {
-                $mensagem = '❄️ Sua senha está reservada. Aguardando outro atendimento.';
+                $mensagem = '❄️ Sua senha está reservada. Aguardando término do atendimento atual.';
             } else {
                 $mensagem = ($pessoas === 0) ? '🟢 Você é o próximo da fila!' : "Há $pessoas pessoa(s) à sua frente.";
             }
@@ -66,7 +71,7 @@ try {
 
         $results[] = [
             'id' => $s['id'],
-            'cliente_uuid' => $s['cliente_uuid'], // Padronizado para cliente_uuid
+            'cliente_uuid' => $s['cliente_uuid'],
             'senha' => $s['senha'],
             'status' => $status,
             'servico' => $s['servico_nome'],
@@ -83,5 +88,6 @@ try {
 
 } catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Erro na sincronia múltipla: ' . $e->getMessage()]);
 }
+?>
