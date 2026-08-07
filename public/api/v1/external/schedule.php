@@ -34,6 +34,25 @@ try {
         throw new Exception("Nome e Data/Hora são obrigatórios.");
     }
 
+    // --- PROTEÇÃO ANTI-DUPLICIDADE (v5.6.9) ---
+    // Verifica se este paciente já está agendado para o exato mesmo horário
+    $jaExiste = Database::fetch(
+        "SELECT id FROM senhas
+         WHERE nome_cliente = ?
+         AND data_agendamento = ?
+         AND status = 'AGENDADO' LIMIT 1",
+        [$nome, $dataHora]
+    );
+
+    if ($jaExiste) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Agendamento já sincronizado anteriormente.',
+            'paciente' => $nome
+        ]);
+        exit;
+    }
+
     $uuid = bin2hex(random_bytes(16));
 
     // REGISTRA COMO 'AGENDADO'
