@@ -81,8 +81,8 @@ final class SyncService
 
             $syncPackage = $response['sync'];
 
-            // 4. Atualiza Tabela Licencas (Diretrizes da Master)
-            $this->license->updateLicense($syncPackage['license'], $uuid, $token);
+            // 4. Atualiza Tabela Licencas (Diretrizes e Features da Master)
+            $this->license->updateLicense($syncPackage['license'], $uuid, $token, $syncPackage['features'] ?? []);
 
             // 5. Processa Comandos
             if (!empty($syncPackage['commands'])) {

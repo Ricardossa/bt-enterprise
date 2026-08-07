@@ -30,7 +30,17 @@ BT.emitter = {
             window.history.replaceState({}, document.title, cleanUrl);
         }
 
-        // REMOVIDO: Regra de redirecionamento imediato (Agora permitimos múltiplas senhas)
+        // --- GESTÃO DE MÚLTIPLAS SENHAS (PLATFORM DIAMOND) ---
+        const saved = localStorage.getItem('bt_premium_tickets');
+        const tickets = saved ? JSON.parse(saved) : [];
+        const isMultiTicketEnabled = window.BT_MOBILE_CONFIG?.multi_ticket !== false;
+
+        if (!isMultiTicketEnabled && tickets.length >= 1) {
+            // Se o plano NÃO permite multi-senhas, redireciona direto se já tiver uma
+            window.location.href = 'acompanhar.php?uuid=' + tickets[0].cliente_uuid;
+            return;
+        }
+
         await this.loadServices();
     },
 

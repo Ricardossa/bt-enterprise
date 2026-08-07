@@ -50,6 +50,12 @@ $estaFechado = ($agora < $abertura || $agora > $fechamento);
             <i class="fa-solid fa-qrcode"></i>
         <?php endif; ?>
 
+        <script>
+            window.BT_MOBILE_CONFIG = {
+                multi_ticket: <?= ($config['feature_multi_ticket'] ?? '1') === '1' ? 'true' : 'false' ?>
+            };
+        </script>
+
         <?php if ($estaFechado): ?>
             <h1 style="color: #FF4D4D;">LOJA FECHADA</h1>
             <p>Atendimento das <?= $abertura ?> às <?= $fechamento ?></p>

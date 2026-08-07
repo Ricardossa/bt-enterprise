@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 use BTQueue\Core\Auth;
 use BTQueue\Core\Database;
+use BTQueue\Core\MasterSync\LicenseManager;
 
 Auth::iniciar();
 if (!Auth::autenticado()) {
@@ -13,6 +14,9 @@ if (!Auth::autenticado()) {
 $operadorLogado = Auth::operador();
 $servicos = Database::fetchAll("SELECT id, nome FROM servicos WHERE ativo = 1 ORDER BY nome ASC");
 $guiches  = Database::fetchAll("SELECT id, nome FROM guiches WHERE ativo = 1 ORDER BY nome ASC");
+
+// --- CONTROLE DE RECURSOS (PLATFORM DIAMOND) ---
+$hasAgenda = LicenseManager::hasFeature('hybrid_scheduling');
 
 $pageTitle = 'Painel do Operador NOC';
 include __DIR__ . '/includes/header.php';
@@ -79,12 +83,14 @@ include __DIR__ . '/includes/header.php';
         </div>
 
         <section class="noc-card">
+            <?php if ($hasAgenda): ?>
             <h2 style="font-size:16px; margin-bottom:20px; color:var(--warning); text-transform:uppercase;">📅 Agenda do Dia</h2>
             <div id="agenda" class="op-next-list">
                 <p style="color: var(--text3); font-size: 13px; text-align: center; padding: 20px;">Carregando agenda...</p>
             </div>
 
             <hr style="margin: 20px 0; border-color: var(--border);">
+            <?php endif; ?>
 
             <h2 style="font-size:16px; margin-bottom:20px; color:var(--text2); text-transform:uppercase;">📋 Próximos na Fila</h2>
             <div id="fila" class="op-next-list"></div>
