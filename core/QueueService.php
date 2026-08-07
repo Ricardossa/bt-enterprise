@@ -176,7 +176,7 @@ class QueueService
         try {
             Database::beginImmediate();
 
-            $senha = Database::fetch("SELECT device_id FROM senhas WHERE id = ?", [$id]);
+            $senha = Database::fetch("SELECT device_id, status FROM senhas WHERE id = ?", [$id]);
             if (!$senha) throw new Exception("Senha não encontrada.");
 
             // 1. Finaliza o atendimento atual
@@ -210,13 +210,16 @@ class QueueService
             $cols = array_column($resInfo->fetchAll(PDO::FETCH_ASSOC), 'name');
 
             if (!in_array('data_agendamento', $cols) || !in_array('nome_cliente', $cols)) {
-                return []; // Banco desatualizado, retorna lista vazia mas NÃO trava o sistema.
+                return [];
             }
 
+            // [ANTI-DUPLICATE QUERY] Agrupa por nome e hora para garantir limpeza visual
+            // Filtramos apenas as últimas 24h para evitar lixo de datas passadas
             $sql = "SELECT id, codigo, nome_cliente, data_agendamento, status
                     FROM senhas
                     WHERE status = 'AGENDADO'
-                    AND date(data_agendamento) = date('now') ";
+                    AND data_agendamento > datetime('now', '-2 hours')
+                    AND data_agendamento < datetime('now', '+18 hours') ";
 
             $params = [];
             if ($servicoId) {
@@ -224,6 +227,7 @@ class QueueService
                 $params[] = $servicoId;
             }
 
+            $sql .= " GROUP BY nome_cliente, data_agendamento ";
             $sql .= " ORDER BY data_agendamento ASC";
 
             return Database::fetchAll($sql, $params);
@@ -354,9 +358,14 @@ class QueueService
             if ($operador) $operadorNome = $operador['nome'];
         }
 
+        // Carrega rótulo personalizado
+        $config = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'label_cliente' LIMIT 1");
+        $label = $config['valor'] ?? 'Paciente';
+
         return [
             'operador_nome' => $operadorNome,
             'guiche_codigo' => $guicheCodigo,
+            'label_cliente' => $label,
             'chamando' => $chamando ? [
                 'id' => $chamando['id'],
                 'codigo' => $chamando['codigo'] ?? $chamando['senha'],

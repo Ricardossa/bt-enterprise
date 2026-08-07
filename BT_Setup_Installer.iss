@@ -49,11 +49,7 @@ Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\favicon.ico"; WorkingDir: "{app}"
 
 [Run]
-; 0. Mata processos antigos para evitar erro de arquivo em uso (v5.7.0 Fix)
-Filename: "taskkill"; Parameters: "/F /IM php.exe /T"; Flags: runhidden; StatusMsg: "Limpando processos ativos..."
-Filename: "taskkill"; Parameters: "/F /IM wscript.exe /T"; Flags: runhidden; StatusMsg: "Finalizando motores antigos..."
-
-; 1. Instala o Microsoft Visual C++ Redistributable (Silencioso)
+; Instala o Microsoft Visual C++ Redistributable (Silencioso)
 Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Instalando componentes de sistema (Microsoft Visual C++)..."; Check: not IsVCInstalled
 
 ; Registra e inicia os serviços do Windows usando o WinSW
@@ -80,16 +76,6 @@ Name: "{app}\logs"; Permissions: users-full; Flags: uninsneveruninstall
 Name: "{app}\cache"; Permissions: users-full; Flags: uninsneveruninstall
 
 [Code]
-function PrepareToInstall(var NeedsRestart: Boolean): String;
-var
-  ResultCode: Integer;
-begin
-  // Mata processos PHP e WScript para liberar arquivos DLL (v5.7.0)
-  Exec('taskkill', '/F /IM php.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Exec('taskkill', '/F /IM wscript.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Result := '';
-end;
-
 function IsVCInstalled: Boolean;
 begin
   Result := RegKeyExists(HKEY_LOCAL_MACHINE, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64');

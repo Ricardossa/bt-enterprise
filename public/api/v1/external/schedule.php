@@ -34,13 +34,12 @@ try {
         throw new Exception("Nome e Data/Hora são obrigatórios.");
     }
 
-    // --- PROTEÇÃO ANTI-DUPLICIDADE (v5.6.9) ---
-    // Verifica se este paciente já está agendado para o exato mesmo horário
+    // --- PROTEÇÃO ANTI-DUPLICIDADE TOTAL (v5.7.1 Diamond) ---
+    // Verifica se este paciente já existiu neste horário, independente de já ter sido chamado ou não
     $jaExiste = Database::fetch(
         "SELECT id FROM senhas
          WHERE nome_cliente = ?
-         AND data_agendamento = ?
-         AND status = 'AGENDADO' LIMIT 1",
+         AND data_agendamento = ? LIMIT 1",
         [$nome, $dataHora]
     );
 
