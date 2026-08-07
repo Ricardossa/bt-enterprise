@@ -204,20 +204,32 @@ class QueueService
 
     public function getAgendados(?int $servicoId = null): array
     {
-        $sql = "SELECT id, codigo, nome_cliente, data_agendamento, status
-                FROM senhas
-                WHERE status = 'AGENDADO'
-                AND date(data_agendamento) = date('now') ";
+        try {
+            // [DIAMOND SAFE] Verifica colunas antes de realizar a query (Anti-Error 500)
+            $resInfo = $this->db->query("PRAGMA table_info(senhas)");
+            $cols = array_column($resInfo->fetchAll(PDO::FETCH_ASSOC), 'name');
 
-        $params = [];
-        if ($servicoId) {
-            $sql .= " AND servico_id = ? ";
-            $params[] = $servicoId;
+            if (!in_array('data_agendamento', $cols) || !in_array('nome_cliente', $cols)) {
+                return []; // Banco desatualizado, retorna lista vazia mas NÃO trava o sistema.
+            }
+
+            $sql = "SELECT id, codigo, nome_cliente, data_agendamento, status
+                    FROM senhas
+                    WHERE status = 'AGENDADO'
+                    AND date(data_agendamento) = date('now') ";
+
+            $params = [];
+            if ($servicoId) {
+                $sql .= " AND servico_id = ? ";
+                $params[] = $servicoId;
+            }
+
+            $sql .= " ORDER BY data_agendamento ASC";
+
+            return Database::fetchAll($sql, $params);
+        } catch (Throwable $e) {
+            return [];
         }
-
-        $sql .= " ORDER BY data_agendamento ASC";
-
-        return Database::fetchAll($sql, $params);
     }
 
     public function chamarAgendado(int $id, int $guicheId, ?string $atendente = null): array
