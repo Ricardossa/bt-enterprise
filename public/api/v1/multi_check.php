@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Verifica o status de múltiplas senhas em uma única requisição.
  */
 
-require_once __DIR__ . '/../../../../bootstrap.php';
+require_once __DIR__ . '/../../../bootstrap.php';
 use BTQueue\Core\Database;
 
 header('Content-Type: application/json; charset=utf-8');
