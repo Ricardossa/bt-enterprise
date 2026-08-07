@@ -83,8 +83,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         const hora = agd.data_agendamento.split(' ')[1].substring(0, 5);
                         const label = dados.label_cliente || 'Paciente';
 
-                        // Limpeza inteligente: Remove o texto "ATENDIMENTO" se ele vier no título do Google
-                        let nomeLimpo = agd.nome_cliente.replace(/ATENDIMENTO/gi, '').trim();
+                        // --- LIMPEZA DE ELITE (Nome e Sobrenome apenas) ---
+                        let nomeLimpo = agd.nome_cliente
+                            .replace(/\(.*\)/g, '') // Remove parênteses
+                            .replace(/ATENDIMENTO|ZH/gi, '') // Remove palavras-chave
+                            .trim();
+
+                        let partes = nomeLimpo.split(' ').filter(p => p.length > 1);
+                        if (partes.length >= 2) {
+                            nomeLimpo = partes[0] + ' ' + partes[partes.length - 1];
+                        } else {
+                            nomeLimpo = partes[0] || 'Paciente';
+                        }
 
                         div.innerHTML = `
                             <div style="display:flex; align-items:center; gap:15px; width:100%;">
@@ -93,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div style="flex:1; text-align:left;">
                                     <span style="font-size:10px; color:var(--text3); text-transform:uppercase; display:block;">${label}</span>
-                                    <b style="color:#fff; font-size:14px;">${nomeLimpo}</b>
+                                    <b style="color:#fff; font-size:16px; text-transform:uppercase;">${nomeLimpo}</b>
                                 </div>
                                 <button class="btn-chamar-agd" onclick="BT_OP.chamarAgendado(${agd.id})" style="background:rgba(255, 193, 7, 0.1); color:var(--warning); border:1px solid var(--warning); padding:8px 15px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer; transition:0.3s;">
                                     CHAMAR

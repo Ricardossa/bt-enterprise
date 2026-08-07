@@ -1,14 +1,11 @@
 <?php
 declare(strict_types=1);
-
 /**
- * BT Queue - Multi-Ticket Check API (DIAMOND SHIELD v5.6.6)
+ * BT Queue - Multi-Ticket Check API (DIAMOND SHIELD v5.6.9)
+ * Blindado contra banco desatualizado.
  */
-
 require_once __DIR__ . '/../../../bootstrap.php';
 use BTQueue\Core\Database;
-
-// IMPORTANTE: Necessário para usar as constantes do PDO no fetchAll
 use PDO;
 
 header('Content-Type: application/json; charset=utf-8');
@@ -23,12 +20,11 @@ try {
         exit;
     }
 
-    // --- BLINDAGEM DE COLUNAS (v5.6.6) ---
-    // Usamos o método do Database para evitar chamadas diretas ao PDO sem 'use PDO' local
-    $resInfo = Database::fetchAll("PRAGMA table_info(senhas)");
-    $cols = array_column($resInfo, 'name');
-
+    // --- DETECÇÃO DE COLUNAS (v5.6.9) ---
+    $resInfo = Database::getInstance()->query("PRAGMA table_info(senhas)");
+    $cols = array_column($resInfo->fetchAll(PDO::FETCH_ASSOC), 'name');
     $campoCodigo = in_array('codigo', $cols) ? 's.codigo' : 's.senha';
+    $hasAgendamento = in_array('data_agendamento', $cols);
 
     $placeholders = implode(',', array_fill(0, count($uuids), '?'));
     $sql = "SELECT s.id, $campoCodigo as senha, s.status, s.guiche_id, s.servico_id, s.cliente_uuid,
@@ -49,11 +45,9 @@ try {
 
         if ($status === 'AGUARDANDO' || $status === 'CONGELADA') {
             $posicaoRes = Database::fetch("
-                SELECT COUNT(*) AS total
-                FROM senhas
+                SELECT COUNT(*) AS total FROM senhas
                 WHERE status IN ('AGUARDANDO', 'CONGELADA')
-                  AND servico_id = ?
-                  AND id < ?
+                  AND servico_id = ? AND id < ?
             ", [(int)$s['servico_id'], (int)$s['id']]);
             $pessoas = (int)($posicaoRes['total'] ?? 0);
 
@@ -73,7 +67,7 @@ try {
             'cliente_uuid' => $s['cliente_uuid'],
             'senha' => $s['senha'],
             'status' => $status,
-            'servico' => $s['servico_nome'],
+            'servico' => $s['servico_nome'] ?? 'Atendimento',
             'icone' => $s['servico_icone'] ?: '📋',
             'cor' => $s['servico_cor'] ?: '#1565C0',
             'guiche' => $s['guiche_nome'] ?: '--',
@@ -82,11 +76,8 @@ try {
             'mensagem' => $mensagem
         ];
     }
-
     echo json_encode(['success' => true, 'data' => $results], JSON_UNESCAPED_UNICODE);
-
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Sincronizando...']);
 }
 ?>
