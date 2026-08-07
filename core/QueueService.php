@@ -29,14 +29,13 @@ class QueueService
             Database::begin();
 
             $agora = date('Y-m-d H:i:s');
-            $hoje = date('Y-m-d');
-
+            // Reset diário inteligente (considera 18h de janela para evitar fuso UTC)
             $ultima = Database::fetch(
                 "SELECT numero FROM senhas
                  WHERE servico_id = ?
-                 AND date(created_at) = ?
+                 AND created_at > datetime('now', '-18 hours')
                  ORDER BY numero DESC LIMIT 1",
-                [$servicoId, $hoje]
+                [$servicoId]
             );
 
             $numero = $ultima ? ((int)$ultima['numero']) + 1 : 1;
@@ -89,12 +88,11 @@ class QueueService
     public function chamar($param1, ?int $guicheId = null, ?string $atendente = null): array
     {
         try {
-            // [ATOMICIDADE] Bloqueio imediato para evitar condição de corrida (C9)
+            // [ATOMICIDADE] Bloqueio imediato para evitar condição de corrida
             Database::beginImmediate();
 
             $isModoNovo = ($guicheId !== null);
             $guicheIdFinal = null;
-            $servicoId = null;
 
             if (!$isModoNovo) {
                 $guicheCodigoLogico = (string)$param1;
@@ -105,31 +103,29 @@ class QueueService
                 }
                 $guicheIdFinal = (int)$guicheInfo['id'];
 
-                // Busca senha para qualquer serviço vinculado a este guichê
                 $sqlBusca = "SELECT s.* FROM senhas s
                              JOIN guiche_servicos gs ON s.servico_id = gs.servico_id
                              WHERE s.status = 'AGUARDANDO'
                              AND gs.guiche_id = ?
-                             AND date(s.created_at) = ?
+                             AND s.created_at > datetime('now', '-18 hours')
                              AND (s.device_id IS NULL OR s.device_id = '' OR s.device_id NOT IN (
                                  SELECT device_id FROM senhas WHERE status = 'CHAMANDO' AND device_id IS NOT NULL AND device_id != ''
                              ))
                              ORDER BY s.id ASC LIMIT 1";
-                $senha = Database::fetch($sqlBusca, [$guicheIdFinal, date('Y-m-d')]);
+                $senha = Database::fetch($sqlBusca, [$guicheIdFinal]);
             } else {
                 $servicoId = (int)$param1;
                 $guicheIdFinal = $guicheId;
 
-                // Busca senha específica para o serviço
                 $sqlBusca = "SELECT * FROM senhas
                              WHERE status = 'AGUARDANDO'
                              AND servico_id = ?
-                             AND date(created_at) = ?
+                             AND created_at > datetime('now', '-18 hours')
                              AND (device_id IS NULL OR device_id = '' OR device_id NOT IN (
                                  SELECT device_id FROM senhas WHERE status = 'CHAMANDO' AND device_id IS NOT NULL AND device_id != ''
                              ))
                              ORDER BY id ASC LIMIT 1";
-                $senha = Database::fetch($sqlBusca, [$servicoId, date('Y-m-d')]);
+                $senha = Database::fetch($sqlBusca, [$servicoId]);
             }
 
             if (!$senha) {
@@ -137,13 +133,11 @@ class QueueService
                 return ['success' => false, 'message' => 'Nenhuma senha elegível no momento.'];
             }
 
-            // 1. Muda a escolhida para CHAMANDO
             Database::execute(
                 "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=CURRENT_TIMESTAMP WHERE id=?",
                 [$guicheIdFinal, $atendente, $senha['id']]
             );
 
-            // 2. [CONGELAMENTO] Congela as demais senhas do mesmo dispositivo (C8)
             if (!empty($senha['device_id'])) {
                 Database::execute(
                     "UPDATE senhas SET status = 'CONGELADA' WHERE device_id = ? AND status = 'AGUARDANDO'",
@@ -183,11 +177,12 @@ class QueueService
             Database::beginImmediate();
 
             $senha = Database::fetch("SELECT device_id FROM senhas WHERE id = ?", [$id]);
+            if (!$senha) throw new Exception("Senha não encontrada.");
 
             // 1. Finaliza o atendimento atual
             Database::execute("UPDATE senhas SET status='FINALIZADA', finalizada_em=CURRENT_TIMESTAMP WHERE id=?", [$id]);
 
-            // 2. [DESCONGELAMENTO SEGURO] (Passo 4 - Proteção contra "Senhas Eternas")
+            // 2. [DESCONGELAMENTO SEGURO]
             if (!empty($senha['device_id'])) {
                 $dev = $senha['device_id'];
                 Database::execute(
@@ -235,9 +230,9 @@ class QueueService
                  JOIN guiche_servicos gs ON s.servico_id = gs.servico_id
                  WHERE s.status IN ('AGUARDANDO', 'CONGELADA')
                  AND gs.guiche_id = ?
-                 AND date(s.created_at) = ?
+                 AND s.created_at > datetime('now', '-18 hours')
                  ORDER BY s.id",
-                [$guicheIdLogico, date('Y-m-d')]
+                [$guicheIdLogico]
             );
         } else {
             $servicoId = ($param1 !== null) ? (int)$param1 : null;
@@ -257,9 +252,9 @@ class QueueService
                      JOIN servicos sv ON s.servico_id = sv.id
                      WHERE s.status IN ('AGUARDANDO', 'CONGELADA')
                      AND s.servico_id = ?
-                     AND date(created_at) = ?
+                     AND s.created_at > datetime('now', '-18 hours')
                      ORDER BY s.id ASC",
-                    [$servicoId, date('Y-m-d')]
+                    [$servicoId]
                 );
             }
         }
@@ -284,7 +279,7 @@ class QueueService
                     'codigo' => $item['codigo'] ?? $item['senha'],
                     'servico_nome' => $item['servico_nome'],
                     'servico_id' => isset($item['servico_id']) ? (int)$item['servico_id'] : null,
-                    'status' => $item['status'] // Passamos o status para o badge visual (Ponto 5)
+                    'status' => $item['status']
                 ];
             }, $fila ?? [])
         ];
@@ -292,34 +287,34 @@ class QueueService
 
     public function getHistoricoChamadas(int $limit = 5): array
     {
-        $hoje = date('Y-m-d');
         return Database::fetchAll(
             "SELECT COALESCE(s.codigo, s.senha) as senha, g.nome as guiche_nome
              FROM senhas s
              LEFT JOIN guiches g ON g.id = s.guiche_id
              WHERE s.status IN ('CHAMANDO', 'FINALIZADA')
-             AND date(s.created_at) = ?
+             AND s.created_at > datetime('now', '-18 hours')
              ORDER BY s.chamada_em DESC, s.id DESC
              LIMIT ?",
-            [$hoje, $limit]
+            [$limit]
         );
     }
 
     public function getStatsPorPeriodo(?string $inicio = null, ?string $fim = null): array
     {
-        $inicio = $inicio ?: date('Y-m-d');
-        $fim = $fim ?: date('Y-m-d');
-
-        $sqlBase = "SELECT COUNT(*) as total FROM senhas WHERE date(created_at) BETWEEN ? AND ?";
-        $params = [$inicio, $fim];
+        if ($inicio === null) {
+            $sqlBase = "SELECT COUNT(*) as total FROM senhas WHERE created_at > datetime('now', '-18 hours')";
+            $params = [];
+        } else {
+            $sqlBase = "SELECT COUNT(*) as total FROM senhas WHERE date(created_at) BETWEEN ? AND ?";
+            $params = [$inicio, $fim ?: $inicio];
+        }
 
         return [
             'emitidas'    => (int) (Database::fetch($sqlBase, $params)['total'] ?? 0),
             'pendentes'   => (int) (Database::fetch($sqlBase . " AND status IN ('AGUARDANDO', 'CONGELADA')", $params)['total'] ?? 0),
             'chamadas'    => (int) (Database::fetch($sqlBase . " AND status NOT IN ('AGUARDANDO', 'CONGELADA')", $params)['total'] ?? 0),
             'finalizadas' => (int) (Database::fetch($sqlBase . " AND status = 'FINALIZADA'", $params)['total'] ?? 0),
-            'success'     => true,
-            'periodo'     => ['inicio' => $inicio, 'fim' => $fim]
+            'success'     => true
         ];
     }
 
