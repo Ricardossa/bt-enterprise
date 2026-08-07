@@ -27,6 +27,7 @@ try {
 
     }
 
+    $estado['agendados'] = $queue->getAgendados($servicoId > 0 ? $servicoId : null);
     $estado['estatisticas'] = $queue->estatisticas();
     // Histórico com suporte flexível a 'senha' ou 'codigo'
     try {

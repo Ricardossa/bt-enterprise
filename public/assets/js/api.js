@@ -31,6 +31,10 @@ BT.api = {
         return await this.post("chamar.php", { servico_id, guiche_id });
     },
 
+    async chamarAgendado(id, guiche_id) {
+        return await this.post("chamar_agendado.php", { id, guiche_id });
+    },
+
     async rechamar(id) {
         return await this.post("rechamar.php", { id });
     },

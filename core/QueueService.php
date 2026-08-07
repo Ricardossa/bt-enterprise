@@ -202,6 +202,83 @@ class QueueService
         }
     }
 
+    public function getAgendados(?int $servicoId = null): array
+    {
+        $sql = "SELECT id, codigo, nome_cliente, data_agendamento, status
+                FROM senhas
+                WHERE status = 'AGENDADO'
+                AND date(data_agendamento) = date('now') ";
+
+        $params = [];
+        if ($servicoId) {
+            $sql .= " AND servico_id = ? ";
+            $params[] = $servicoId;
+        }
+
+        $sql .= " ORDER BY data_agendamento ASC";
+
+        return Database::fetchAll($sql, $params);
+    }
+
+    public function chamarAgendado(int $id, int $guicheId, ?string $atendente = null): array
+    {
+        try {
+            Database::beginImmediate();
+
+            $senha = Database::fetch("SELECT * FROM senhas WHERE id = ? AND status = 'AGENDADO' LIMIT 1", [$id]);
+            if (!$senha) {
+                Database::rollback();
+                return ['success' => false, 'message' => 'Agendamento não encontrado ou já processado.'];
+            }
+
+            // [SEGURANÇA] Verifica se o dispositivo já está em atendimento
+            if (!empty($senha['device_id'])) {
+                $check = Database::fetch("SELECT id FROM senhas WHERE device_id = ? AND status = 'CHAMANDO' LIMIT 1", [$senha['device_id']]);
+                if ($check) {
+                    Database::rollback();
+                    return ['success' => false, 'message' => 'Este paciente já está sendo chamado em outro guichê!'];
+                }
+            }
+
+            // 1. Muda para CHAMANDO
+            Database::execute(
+                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=CURRENT_TIMESTAMP WHERE id=?",
+                [$guicheId, $atendente, $id]
+            );
+
+            // 2. [CONGELAMENTO]
+            if (!empty($senha['device_id'])) {
+                Database::execute(
+                    "UPDATE senhas SET status = 'CONGELADA' WHERE device_id = ? AND status = 'AGUARDANDO'",
+                    [$senha['device_id']]
+                );
+            }
+
+            $guicheInfo = Database::fetch("SELECT codigo FROM guiches WHERE id = ? LIMIT 1", [$guicheId]);
+            $guicheCodigoLogico = $guicheInfo ? $guicheInfo['codigo'] : (string)$guicheId;
+            $codigoExibir = $senha['codigo'] ?? ($senha['senha'] ?? '---');
+
+            Database::execute(
+                "INSERT INTO sync_queue (evento, entidade, referencia_id, payload, sincronizado) VALUES (?, ?, ?, ?, 0)",
+                ['CHAMAR', 'senha', $id, json_encode(['senha' => $codigoExibir, 'guiche' => $guicheCodigoLogico], JSON_UNESCAPED_UNICODE)]
+            );
+
+            ActivityService::log('SUCCESS', 'QUEUE', "Agendado $codigoExibir chamado no $guicheCodigoLogico", [], 'Operador');
+
+            Database::commit();
+
+            return [
+                'success' => true,
+                'id' => $id,
+                'codigo' => $codigoExibir,
+                'guiche' => $guicheCodigoLogico
+            ];
+        } catch (Throwable $e) {
+            Database::rollback();
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
     public function estado($param1 = null, ?int $guicheId = null): array
     {
         $servicoId = null;

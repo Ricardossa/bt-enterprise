@@ -12,7 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btnFinalizar: document.getElementById('btnFinalizar'),
         lblGuiche: document.getElementById('guicheAtual'),
         lblSenhaAtual: document.getElementById('senhaAtual'),
-        listaFila: document.getElementById('fila')
+        listaFila: document.getElementById('fila'),
+        listaAgenda: document.getElementById('agenda')
     };
 
     let atendimentoAtual = null;
@@ -68,8 +69,52 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 $dom.listaFila.innerHTML = '<div class="text-center p-4">Fila vazia</div>';
             }
+
+            // --- RENDERIZAÇÃO DA AGENDA DO DIA (HÍBRIDA) ---
+            if ($dom.listaAgenda) {
+                $dom.listaAgenda.innerHTML = '';
+                if (dados.agendados && dados.agendados.length > 0) {
+                    dados.agendados.forEach(agd => {
+                        const div = document.createElement('div');
+                        div.className = 'op-next-item';
+                        div.style.borderLeft = '4px solid var(--warning)';
+
+                        // Extrai apenas a hora do agendamento
+                        const hora = agd.data_agendamento.split(' ')[1].substring(0, 5);
+
+                        div.innerHTML = `
+                            <div>
+                                <b style="color:var(--warning)">${hora} - ${agd.nome_cliente || 'Paciente'}</b><br>
+                                <small style="color:var(--text3)">Agendado via Google</small>
+                            </div>
+                            <button class="btn-chamar-agd" onclick="BT_OP.chamarAgendado(${agd.id})" style="background:var(--warning); color:#000; border:none; padding:5px 10px; border-radius:5px; font-size:10px; font-weight:bold; cursor:pointer;">
+                                CHAMAR
+                            </button>
+                        `;
+                        $dom.listaAgenda.appendChild(div);
+                    });
+                } else {
+                    $dom.listaAgenda.innerHTML = '<div class="text-center text-muted py-2" style="font-size:12px;">Nenhum agendamento para hoje.</div>';
+                }
+            }
         } catch (e) { console.error(e); }
     }
+
+    // Expõe a função globalmente para o onclick
+    window.BT_OP = {
+        chamarAgendado: async (id) => {
+            const p = obterParametrosAtivos();
+            if (!p.guiche_id) return alert("Selecione seu guichê primeiro.");
+
+            const res = await BT.api.chamarAgendado(id, p.guiche_id);
+            if (res.success) {
+                BT.toast.sucesso("Agendado chamado!");
+                atualizarPainel();
+            } else {
+                alert(res.message);
+            }
+        }
+    };
 
     $dom.btnChamar.onclick = async () => {
         const p = obterParametrosAtivos();
