@@ -34,9 +34,16 @@ try {
         $cols = array_column($resInfo->fetchAll(PDO::FETCH_ASSOC), 'name');
         $campoCodigo = in_array('codigo', $cols) ? 's.codigo' : 's.senha';
 
+        // --- DETECÇÃO DINÂMICA DE COLUNAS (HOSPITAL SAFE) ---
+        $extraCols = [];
+        if (in_array('nome_cliente', $cols)) $extraCols[] = "s.nome_cliente";
+        if (in_array('atendente_nome', $cols)) $extraCols[] = "s.atendente_nome";
+        if (in_array('tipo_atendimento', $cols)) $extraCols[] = "s.tipo_atendimento";
+
+        $sqlExtra = !empty($extraCols) ? ", " . implode(", ", $extraCols) : "";
+
         $estado['historico'] = Database::fetchAll(
-            "SELECT s.id, $campoCodigo as senha, g.nome as guiche_nome, s.chamada_em,
-                    s.nome_cliente, s.atendente_nome, s.tipo_atendimento
+            "SELECT s.id, $campoCodigo as senha, g.nome as guiche_nome, s.chamada_em $sqlExtra
              FROM senhas s
              LEFT JOIN guiches g ON g.id = s.guiche_id
              WHERE s.status IN ('CHAMANDO', 'FINALIZADA')

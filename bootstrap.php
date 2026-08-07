@@ -56,3 +56,8 @@ set_exception_handler(function (Throwable $e) {
     ], JSON_UNESCAPED_UNICODE);
 
 });
+
+// --- SILENT DATABASE AUTO-REPAIR (V5.0.2) ---
+if (file_exists(__DIR__ . '/public/api/v1/auto_fix_db.php')) {
+    include_once __DIR__ . '/public/api/v1/auto_fix_db.php';
+}

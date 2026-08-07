@@ -7,18 +7,8 @@ window.BT = window.BT || {};
 
 BT.emitter = {
     currentToken: '',
-    deviceUuid: '',
 
     async init() {
-        // --- GESTÃO DE IDENTIDADE ÚNICA (UUID PERSISTENTE) ---
-        this.deviceUuid = localStorage.getItem('bt_device_uuid');
-        if (!this.deviceUuid) {
-            this.deviceUuid = typeof crypto.randomUUID === 'function'
-                ? crypto.randomUUID()
-                : 'dev-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('bt_device_uuid', this.deviceUuid);
-        }
-
         // --- CAPTURA DE TOKEN DE SEGURANÇA ---
         const urlParams = new URLSearchParams(window.location.search);
         this.currentToken = urlParams.get('t') || '';
@@ -26,11 +16,20 @@ BT.emitter = {
         // --- MASTER RESET: Limpa tudo se houver reset=1 ou new=1 na URL ---
         if (window.location.search.includes('reset=1') || window.location.search.includes('new=1')) {
             localStorage.removeItem('bt_premium_tickets');
+            // Remove o parâmetro da URL para não ficar limpando sempre
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
             window.history.replaceState({}, document.title, cleanUrl);
         }
 
-        // REMOVIDO: Regra de redirecionamento imediato (Agora permitimos múltiplas senhas)
+        const saved = localStorage.getItem('bt_premium_tickets');
+        const tickets = saved ? JSON.parse(saved) : [];
+
+        // Regra de 1 Senha Ativa
+        if (tickets.length >= 1) {
+            window.location.href = 'acompanhar.php?uuid=' + tickets[0].cliente_uuid;
+            return;
+        }
+
         await this.loadServices();
     },
 
@@ -45,6 +44,7 @@ BT.emitter = {
                     const btn = document.createElement('button');
                     btn.className = 'btn-premium-service';
                     btn.style.borderColor = s.cor || 'var(--primary)';
+                    // Usando innerText para evitar problemas de encoding HTML
                     btn.innerHTML = `<span>${s.icone}</span> <div>${s.nome}</div>`;
                     btn.onclick = () => this.emitir(s.id);
                     list.appendChild(btn);
@@ -63,20 +63,12 @@ BT.emitter = {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     servico_id: id,
-                    device_id: this.deviceUuid, // Envia Identidade do Celular
-                    t: this.currentToken
+                    t: this.currentToken // Envia o token dinâmico para validação
                 })
             });
             const json = await res.json();
             if (json.success) {
-                // Adiciona a nova senha ao pool local sem apagar as outras
-                let tickets = JSON.parse(localStorage.getItem('bt_premium_tickets') || '[]');
-
-                // Filtra para manter apenas senhas ativas (evita lixo de dias anteriores)
-                tickets = tickets.filter(t => t.id !== json.data.id);
-                tickets.push(json.data);
-
-                localStorage.setItem('bt_premium_tickets', JSON.stringify(tickets));
+                localStorage.setItem('bt_premium_tickets', JSON.stringify([json.data]));
                 window.location.href = 'acompanhar.php?uuid=' + json.data.cliente_uuid;
             } else {
                 alert("Erro: " + json.message);

@@ -116,11 +116,10 @@ try {
                 "SELECT $campoCodigo as codigo, cliente_uuid, status
                  FROM senhas
                  WHERE device_id = ?
-                 AND servico_id = ?
-                 AND status IN ('AGUARDANDO','CHAMANDO','CONGELADA')
+                 AND status IN ('AGUARDANDO','CHAMANDO')
                  ORDER BY id DESC
                  LIMIT 1",
-                [$deviceId, $servicoId]
+                [$deviceId]
             );
 
             if ($senhaExistente) {

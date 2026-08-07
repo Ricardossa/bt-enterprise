@@ -62,6 +62,11 @@ class Database
         self::getInstance()->beginTransaction();
     }
 
+    public static function beginImmediate(): void
+    {
+        self::getInstance()->exec("BEGIN IMMEDIATE TRANSACTION");
+    }
+
     public static function commit(): void
     {
         if (self::getInstance()->inTransaction()) {

@@ -55,14 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dados.fila.forEach(senha => {
                     const div = document.createElement('div');
                     div.className = 'op-next-item';
-
-                    const isFrozen = (senha.status === 'CONGELADA');
-                    const badgeClass = isFrozen ? 'badge-info' : 'badge-warning';
-                    const badgeText = isFrozen ? 'Congelada ❄️' : 'Fila';
-                    const opacity = isFrozen ? '0.6' : '1';
-
-                    div.style.opacity = opacity;
-                    div.innerHTML = `<div><b>${senha.codigo}</b><br><small>${senha.servico_nome}</small></div><span class="badge ${badgeClass}">${badgeText}</span>`;
+                    div.innerHTML = `<div><b>${senha.codigo}</b><br><small>${senha.servico_nome}</small></div><span class="badge warning">Fila</span>`;
                     $dom.listaFila.appendChild(div);
                 });
             } else {

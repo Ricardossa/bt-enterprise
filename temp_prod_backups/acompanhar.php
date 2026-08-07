@@ -44,17 +44,16 @@ try {
     $servico = Database::fetch("SELECT nome, icone, cor, tempo_medio FROM servicos WHERE id = ?", [(int)$senha['servico_id']]);
     $guiche = Database::fetch("SELECT nome FROM guiches WHERE id = ?", [(int)$senha['guiche_id']]);
 
-    // 3. Calcula Posição (Incluindo Congeladas para estabilidade)
+    // 3. Calcula Posição
     $posicaoRes = Database::fetch("
         SELECT COUNT(*) AS total
         FROM senhas
-        WHERE status IN ('AGUARDANDO', 'CONGELADA')
+        WHERE status='AGUARDANDO'
           AND servico_id = ?
           AND id < ?
     ", [(int)$senha['servico_id'], (int)$senha['id']]);
 
     $pessoas = (int)($posicaoRes['total'] ?? 0);
-    $isFrozen = ($senha['status'] === 'CONGELADA');
 
     // 4. Monta a resposta blindada
     echo json_encode([
@@ -62,15 +61,14 @@ try {
         'data' => [
             'senha'   => $senha['codigo_real'],
             'status'  => $senha['status'],
-            'posicao' => $isFrozen ? '--' : $pessoas,
+            'posicao' => $pessoas,
             'guiche'  => $guiche ? $guiche['nome'] : '--',
             'servico' => $servico ? $servico['nome'] : 'Atendimento',
             'icone'   => $servico ? $servico['icone'] : '📋',
             'cor'     => $servico ? $servico['cor'] : '#1565C0',
-            'tempo_estimado' => $isFrozen ? 0 : ($pessoas * (int)($servico['tempo_medio'] ?? 10)),
+            'tempo_estimado' => $pessoas * (int)($servico['tempo_medio'] ?? 10),
             'mensagem' => match ($senha['status']) {
                 'AGUARDANDO'  => ($pessoas === 0) ? '🟢 Você é o próximo da fila.' : "🟡 Há $pessoas pessoa(s) à sua frente.",
-                'CONGELADA'   => '❄️ Sua senha está reservada. Aguardando término do atendimento atual.',
                 'CHAMANDO'    => '🔔 SUA SENHA ESTÁ SENDO CHAMADA!',
                 'ATENDIMENTO' => '👨‍⚕️ Você está em atendimento.',
                 'FINALIZADA'  => '✅ Atendimento finalizado.',

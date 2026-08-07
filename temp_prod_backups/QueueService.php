@@ -17,17 +17,25 @@ class QueueService
         $this->db = Database::getInstance();
     }
 
+    /**
+     * Auxiliar: Detecta quais colunas existem na tabela para evitar erros de NOT NULL
+     */
     private function getTableColumns(string $table): array
     {
         $res = $this->db->query("PRAGMA table_info($table)");
         return array_column($res->fetchAll(PDO::FETCH_ASSOC), 'name');
     }
 
+    /**
+     * Emitir Senha - Versão Ultra-Compatível (V4.2+)
+     */
     public function emitir(string $prefixo, int $servicoId, string $clienteUuid, ?string $deviceId = null): array
     {
         try {
             Database::begin();
 
+            // --- LÓGICA DE RESET DIÁRIO BLINDADA (V5.2) ---
+            // Usamos a data do PHP para garantir sincronia com o fuso horário local
             $agora = date('Y-m-d H:i:s');
             $hoje = date('Y-m-d');
 
@@ -45,6 +53,7 @@ class QueueService
 
             $cols = $this->getTableColumns('senhas');
 
+            // Prepara o mapeamento dinâmico
             $data = [
                 'uuid' => $uuid,
                 'cliente_uuid' => $clienteUuid,
@@ -53,10 +62,11 @@ class QueueService
                 'prefixo' => $prefixo,
                 'status' => 'AGUARDANDO',
                 'device_id' => $deviceId,
-                'created_at' => $agora,
-                'emitida_em' => $agora
+                'created_at' => $agora, // Força a data do PHP
+                'emitida_em' => $agora  // Força a data do PHP
             ];
 
+            // Garante compatibilidade entre 'senha' e 'codigo'
             if (in_array('codigo', $cols)) $data['codigo'] = $codigoGerado;
             if (in_array('senha', $cols)) $data['senha'] = $codigoGerado;
 
@@ -86,15 +96,18 @@ class QueueService
         }
     }
 
+    /**
+     * Chamar Próxima Senha
+     */
     public function chamar($param1, ?int $guicheId = null, ?string $atendente = null): array
     {
         try {
-            // [ATOMICIDADE] Bloqueio imediato para evitar condição de corrida (C9)
-            Database::beginImmediate();
+            Database::begin();
 
             $isModoNovo = ($guicheId !== null);
+            $senha = null;
+            $guicheCodigoLogico = '';
             $guicheIdFinal = null;
-            $servicoId = null;
 
             if (!$isModoNovo) {
                 $guicheCodigoLogico = (string)$param1;
@@ -105,59 +118,52 @@ class QueueService
                 }
                 $guicheIdFinal = (int)$guicheInfo['id'];
 
-                // Busca senha para qualquer serviço vinculado a este guichê
-                $sqlBusca = "SELECT s.* FROM senhas s
-                             JOIN guiche_servicos gs ON s.servico_id = gs.servico_id
-                             WHERE s.status = 'AGUARDANDO'
-                             AND gs.guiche_id = ?
-                             AND date(s.created_at) = ?
-                             AND (s.device_id IS NULL OR s.device_id = '' OR s.device_id NOT IN (
-                                 SELECT device_id FROM senhas WHERE status = 'CHAMANDO' AND device_id IS NOT NULL AND device_id != ''
-                             ))
-                             ORDER BY s.id ASC LIMIT 1";
-                $senha = Database::fetch($sqlBusca, [$guicheIdFinal, date('Y-m-d')]);
+                $senha = Database::fetch(
+                    "SELECT s.* FROM senhas s
+                     JOIN guiche_servicos gs ON s.servico_id = gs.servico_id
+                     WHERE s.status = 'AGUARDANDO'
+                     AND gs.guiche_id = ?
+                     AND date(s.created_at) = ?
+                     ORDER BY s.id LIMIT 1",
+                    [$guicheIdFinal, date('Y-m-d')]
+                );
             } else {
                 $servicoId = (int)$param1;
                 $guicheIdFinal = $guicheId;
+                $guicheInfo = Database::fetch("SELECT codigo, nome FROM guiches WHERE id = ? LIMIT 1", [$guicheIdFinal]);
+                $guicheCodigoLogico = $guicheInfo ? $guicheInfo['codigo'] : (string)$guicheIdFinal;
 
-                // Busca senha específica para o serviço
-                $sqlBusca = "SELECT * FROM senhas
-                             WHERE status = 'AGUARDANDO'
-                             AND servico_id = ?
-                             AND date(created_at) = ?
-                             AND (device_id IS NULL OR device_id = '' OR device_id NOT IN (
-                                 SELECT device_id FROM senhas WHERE status = 'CHAMANDO' AND device_id IS NOT NULL AND device_id != ''
-                             ))
-                             ORDER BY id ASC LIMIT 1";
-                $senha = Database::fetch($sqlBusca, [$servicoId, date('Y-m-d')]);
+                $senha = Database::fetch(
+                    "SELECT * FROM senhas
+                     WHERE status = 'AGUARDANDO'
+                     AND servico_id = ?
+                     AND date(created_at) = ?
+                     ORDER BY id LIMIT 1",
+                    [$servicoId, date('Y-m-d')]
+                );
             }
 
             if (!$senha) {
                 Database::rollback();
-                return ['success' => false, 'message' => 'Nenhuma senha elegível no momento.'];
+                return ['success' => false, 'message' => 'Nenhuma senha disponível.'];
             }
 
-            // 1. Muda a escolhida para CHAMANDO
             Database::execute(
                 "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=CURRENT_TIMESTAMP WHERE id=?",
                 [$guicheIdFinal, $atendente, $senha['id']]
             );
 
-            // 2. [CONGELAMENTO] Congela as demais senhas do mesmo dispositivo (C8)
-            if (!empty($senha['device_id'])) {
-                Database::execute(
-                    "UPDATE senhas SET status = 'CONGELADA' WHERE device_id = ? AND status = 'AGUARDANDO'",
-                    [$senha['device_id']]
-                );
-            }
-
-            $guicheInfo = Database::fetch("SELECT codigo FROM guiches WHERE id = ? LIMIT 1", [$guicheIdFinal]);
-            $guicheCodigoLogico = $guicheInfo ? $guicheInfo['codigo'] : (string)$guicheIdFinal;
+            // Payload para TV e Sync
             $codigoExibir = $senha['codigo'] ?? ($senha['senha'] ?? '---');
 
             Database::execute(
                 "INSERT INTO sync_queue (evento, entidade, referencia_id, payload, sincronizado) VALUES (?, ?, ?, ?, 0)",
-                ['CHAMAR', 'senha', (int)$senha['id'], json_encode(['senha' => $codigoExibir, 'guiche' => $guicheCodigoLogico], JSON_UNESCAPED_UNICODE)]
+                [
+                    'CHAMAR', 
+                    'senha',
+                    (int)$senha['id'],
+                    json_encode(['senha' => $codigoExibir, 'guiche' => $guicheCodigoLogico], JSON_UNESCAPED_UNICODE)
+                ]
             );
 
             ActivityService::log('SUCCESS', 'QUEUE', "Senha $codigoExibir chamada no $guicheCodigoLogico", [], 'Operador');
@@ -179,32 +185,8 @@ class QueueService
 
     public function finalizar(int $id): array
     {
-        try {
-            Database::beginImmediate();
-
-            $senha = Database::fetch("SELECT device_id FROM senhas WHERE id = ?", [$id]);
-
-            // 1. Finaliza o atendimento atual
-            Database::execute("UPDATE senhas SET status='FINALIZADA', finalizada_em=CURRENT_TIMESTAMP WHERE id=?", [$id]);
-
-            // 2. [DESCONGELAMENTO SEGURO] (Passo 4 - Proteção contra "Senhas Eternas")
-            if (!empty($senha['device_id'])) {
-                $dev = $senha['device_id'];
-                Database::execute(
-                    "UPDATE senhas SET status = 'AGUARDANDO'
-                     WHERE device_id = ?
-                     AND status = 'CONGELADA'
-                     AND NOT EXISTS (SELECT 1 FROM senhas WHERE device_id = ? AND status = 'CHAMANDO')",
-                    [$dev, $dev]
-                );
-            }
-
-            Database::commit();
-            return ['success' => true];
-        } catch (Throwable $e) {
-            Database::rollback();
-            return ['success' => false, 'message' => $e->getMessage()];
-        }
+        Database::execute("UPDATE senhas SET status='FINALIZADA', finalizada_em=CURRENT_TIMESTAMP WHERE id=?", [$id]);
+        return ['success' => true];
     }
 
     public function estado($param1 = null, ?int $guicheId = null): array
@@ -221,7 +203,6 @@ class QueueService
             $guicheCodigo = ($param1 !== null) ? (string)$param1 : '01';
             $guicheInfo = Database::fetch("SELECT id FROM guiches WHERE codigo = ? LIMIT 1", [$guicheCodigo]);
             $guicheIdLogico = $guicheInfo ? (int)$guicheInfo['id'] : 1;
-            $guicheIdParaOperador = $guicheIdLogico;
 
             $chamando = Database::fetch(
                 "SELECT * FROM senhas WHERE status='CHAMANDO' AND guiche_id = ? ORDER BY chamada_em DESC LIMIT 1",
@@ -233,17 +214,18 @@ class QueueService
                  FROM senhas s
                  JOIN servicos sv ON s.servico_id = sv.id
                  JOIN guiche_servicos gs ON s.servico_id = gs.servico_id
-                 WHERE s.status IN ('AGUARDANDO', 'CONGELADA')
+                 WHERE s.status='AGUARDANDO'
                  AND gs.guiche_id = ?
                  AND date(s.created_at) = ?
                  ORDER BY s.id",
                 [$guicheIdLogico, date('Y-m-d')]
             );
+            
+            $guicheIdParaOperador = $guicheIdLogico;
         } else {
             $servicoId = ($param1 !== null) ? (int)$param1 : null;
             $guicheInfo = Database::fetch("SELECT nome FROM guiches WHERE id = ? LIMIT 1", [$guicheId]);
             $guicheCodigo = $guicheInfo ? $guicheInfo['nome'] : "Guichê " . $guicheId;
-            $guicheIdParaOperador = $guicheId;
 
             $chamando = Database::fetch(
                 "SELECT * FROM senhas WHERE status='CHAMANDO' AND guiche_id = ? ORDER BY chamada_em DESC LIMIT 1",
@@ -255,13 +237,15 @@ class QueueService
                     "SELECT s.*, sv.nome as servico_nome
                      FROM senhas s
                      JOIN servicos sv ON s.servico_id = sv.id
-                     WHERE s.status IN ('AGUARDANDO', 'CONGELADA')
+                     WHERE s.status='AGUARDANDO'
                      AND s.servico_id = ?
-                     AND date(created_at) = ?
+                     AND date(s.created_at) = ?
                      ORDER BY s.id ASC",
                     [$servicoId, date('Y-m-d')]
                 );
             }
+            
+            $guicheIdParaOperador = $guicheId;
         }
 
         $operadorNome = 'Operador Geral';
@@ -283,8 +267,7 @@ class QueueService
                     'id' => (int)$item['id'],
                     'codigo' => $item['codigo'] ?? $item['senha'],
                     'servico_nome' => $item['servico_nome'],
-                    'servico_id' => isset($item['servico_id']) ? (int)$item['servico_id'] : null,
-                    'status' => $item['status'] // Passamos o status para o badge visual (Ponto 5)
+                    'servico_id' => isset($item['servico_id']) ? (int)$item['servico_id'] : null
                 ];
             }, $fila ?? [])
         ];
@@ -305,6 +288,9 @@ class QueueService
         );
     }
 
+    /**
+     * Retorna estatísticas detalhadas por período.
+     */
     public function getStatsPorPeriodo(?string $inicio = null, ?string $fim = null): array
     {
         $inicio = $inicio ?: date('Y-m-d');
@@ -315,8 +301,8 @@ class QueueService
 
         return [
             'emitidas'    => (int) (Database::fetch($sqlBase, $params)['total'] ?? 0),
-            'pendentes'   => (int) (Database::fetch($sqlBase . " AND status IN ('AGUARDANDO', 'CONGELADA')", $params)['total'] ?? 0),
-            'chamadas'    => (int) (Database::fetch($sqlBase . " AND status NOT IN ('AGUARDANDO', 'CONGELADA')", $params)['total'] ?? 0),
+            'pendentes'   => (int) (Database::fetch($sqlBase . " AND status = 'AGUARDANDO'", $params)['total'] ?? 0),
+            'chamadas'    => (int) (Database::fetch($sqlBase . " AND status != 'AGUARDANDO'", $params)['total'] ?? 0),
             'finalizadas' => (int) (Database::fetch($sqlBase . " AND status = 'FINALIZADA'", $params)['total'] ?? 0),
             'success'     => true,
             'periodo'     => ['inicio' => $inicio, 'fim' => $fim]
