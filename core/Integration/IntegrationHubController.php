@@ -76,9 +76,13 @@ final class IntegrationHubController
 
             Database::commit();
 
+            // Carrega rótulo personalizado para a mensagem de retorno
+            $config = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'label_cliente' LIMIT 1");
+            $label = $config['valor'] ?? 'Paciente';
+
             return [
                 'success' => true,
-                'message' => 'Paciente chamado com sucesso na TV.',
+                'message' => "$label chamado com sucesso na TV.",
                 'job_id' => $id,
                 'paciente' => $paciente
             ];

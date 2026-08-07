@@ -81,10 +81,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         // Extrai apenas a hora do agendamento
                         const hora = agd.data_agendamento.split(' ')[1].substring(0, 5);
+                        const label = dados.label_cliente || 'Paciente';
 
                         div.innerHTML = `
                             <div>
-                                <b style="color:var(--warning)">${hora} - ${agd.nome_cliente || 'Paciente'}</b><br>
+                                <b style="color:var(--warning)">${hora} - ${agd.nome_cliente || label}</b><br>
                                 <small style="color:var(--text3)">Agendado via Google</small>
                             </div>
                             <button class="btn-chamar-agd" onclick="BT_OP.chamarAgendado(${agd.id})" style="background:var(--warning); color:#000; border:none; padding:5px 10px; border-radius:5px; font-size:10px; font-weight:bold; cursor:pointer;">

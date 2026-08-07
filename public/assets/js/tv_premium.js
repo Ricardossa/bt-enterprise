@@ -87,6 +87,14 @@ BT.tv = {
         this.isBusy = true;
         const call = this.internalQueue.shift();
 
+        // Obtém o estado mais recente para pegar o label_cliente
+        let data = null;
+        try {
+            const res = await fetch('api/estado.php');
+            const json = await res.json();
+            if (json.success) data = json.data;
+        } catch(e) {}
+
         // --- WATCHDOG: Destrava a fila após 12 segundos caso a voz falhe ---
         if (this.watchdogTimer) clearTimeout(this.watchdogTimer);
         this.watchdogTimer = setTimeout(() => {
@@ -98,7 +106,7 @@ BT.tv = {
         }, 12000);
 
         try {
-            this.showCallOnScreen(call);
+            this.showCallOnScreen(call, data);
 
             // 1. IMPACTO CINEMA: Toca Sinal Sonoro e Brilha a Tela
             this.toggleFlashing(true);
@@ -110,7 +118,7 @@ BT.tv = {
             } catch(e) { console.warn("Erro ao tocar Áudio: Interação necessária."); }
 
             // 2. Executa Voz
-            await this.speakCall(call);
+            await this.speakCall(call, data);
 
             this.toggleFlashing(false);
 
@@ -122,10 +130,11 @@ BT.tv = {
         }
     },
 
-    showCallOnScreen(call) {
+    showCallOnScreen(call, data) {
         const elSenha = document.getElementById('main-ticket');
         const elGuiche = document.getElementById('main-guiche');
         const elLabel = document.querySelector('.label-chamada');
+        const labelBase = data?.label_cliente || 'Paciente';
 
         if (elSenha) {
             elSenha.textContent = call.senha;
@@ -150,9 +159,9 @@ BT.tv = {
 
         // Ajusta rótulo hospitalar e PRIORIDADE
         if (elLabel) {
-            let texto = call.is_hospital ? 'Paciente em Atendimento' : 'Senha em Atendimento';
+            let texto = call.is_hospital ? `${labelBase} em Atendimento` : 'Senha em Atendimento';
             if (call.tipo_atendimento === 'PREFERENCIAL' || call.tipo_atendimento === 'PRIORITARIO') {
-                texto = '⚠️ ATENDIMENTO PREFERENCIAL';
+                texto = `⚠️ ${labelBase.toUpperCase()} PREFERENCIAL`;
                 document.body.classList.add('priority-alert');
             } else {
                 document.body.classList.remove('priority-alert');
@@ -174,11 +183,12 @@ BT.tv = {
         document.body.classList.toggle('flash-call', active);
     },
 
-    speakCall(call) {
+    speakCall(call, data) {
         return new Promise((resolve) => {
             if (!this.isVozHabilitada) return resolve();
 
-            const prefixo = call.is_hospital ? 'Paciente' : 'Senha';
+            const labelBase = data?.label_cliente || 'Paciente';
+            const prefixo = call.is_hospital ? labelBase : 'Senha';
             const texto = `${prefixo} ${call.senha}, dirigir-se ao ${call.guiche_nome}`;
 
             // --- CANAL 1: PONTE NATIVA ANDROID (ALTA PERFORMANCE) ---

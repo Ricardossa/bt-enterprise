@@ -52,6 +52,12 @@ include __DIR__ . '/includes/header.php';
                 </div>
 
                 <div class="form-group" style="margin-top:20px;">
+                    <label>Rótulo do Atendimento (Ex: Paciente, Fornecedor)</label>
+                    <input type="text" id="label_cliente" class="form-control" placeholder="Paciente">
+                    <small style="color:var(--text2); font-size:11px;">Este nome será usado no painel do operador e relatórios.</small>
+                </div>
+
+                <div class="form-group" style="margin-top:20px;">
                     <label>Logotipo Oficial (PNG/JPG)</label>
                     <div class="branding-box">
                         <img id="empresaLogoPreview" src="assets/img/logo-placeholder.png" class="branding-logo-preview" onerror="this.src='uploads/logo.png'">

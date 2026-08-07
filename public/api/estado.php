@@ -27,6 +27,10 @@ try {
 
     }
 
+    // Carrega rótulo personalizado
+    $config = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'label_cliente' LIMIT 1");
+    $estado['label_cliente'] = $config['valor'] ?? 'Paciente';
+
     $estado['agendados'] = $queue->getAgendados($servicoId > 0 ? $servicoId : null);
     $estado['estatisticas'] = $queue->estatisticas();
     // Histórico com suporte flexível a 'senha' ou 'codigo'
