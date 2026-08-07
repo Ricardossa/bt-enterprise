@@ -49,25 +49,21 @@ $baseUrl = $protocol . $_SERVER['HTTP_HOST'] . str_replace('live_premium/acompan
     </header>
 
     <main>
-        <section class="premium-card">
-            <div class="ticket-white-box">
-                <div id="ticket-number" class="ticket-number">---</div>
-                <div class="badge-status">
-                    <div class="dot-status"></div>
-                    <span id="status-label">Consultando...</span>
-                </div>
-                <div class="grid-stats">
-                    <div class="stat-item"><label>Fila</label><b id="stat-posicao">--</b></div>
-                    <div class="stat-item"><label>Espera</label><b id="stat-tempo">--</b></div>
-                    <div class="stat-item"><label>Local</label><b id="stat-guiche">--</b></div>
-                </div>
-                <div id="call-alert" class="call-overlay-premium" style="display:none;">
-                     <h2 style="font-weight:900;">🔔 CHAMANDO!</h2>
-                     <h1 id="alert-guiche">GUICHÊ --</h1>
-                </div>
+        <!-- CONTEÚDO DINÂMICO: Múltiplas Senhas -->
+        <div id="tickets-container" class="animate__animated animate__fadeIn">
+            <div style="padding: 100px 20px; text-align: center; color: var(--text2);">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 40px; color: var(--secondary); margin-bottom: 20px;"></i>
+                <p>Sincronizando seus atendimentos...</p>
             </div>
+        </div>
 
-            <!-- ÁREA DE PROMOÇÕES -->
+        <div id="call-alert" class="call-overlay-premium" style="display:none;">
+             <h2 style="font-weight:900;">🔔 CHAMANDO!</h2>
+             <h1 id="alert-guiche">GUICHÊ --</h1>
+             <p id="alert-servico" style="font-size: 14px; opacity: 0.8;"></p>
+        </div>
+
+        <!-- ÁREA DE PROMOÇÕES -->
             <div class="promo-premium-container">
                 <div id="promo-display" class="promo-item-row">
                     <img id="promo-img" src="" class="promo-item-img" onerror="this.style.display='none'">

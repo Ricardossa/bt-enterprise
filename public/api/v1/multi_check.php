@@ -1,0 +1,72 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * BT Queue - Multi-Ticket Check API
+ * Verifica o status de múltiplas senhas em uma única requisição.
+ */
+
+require_once __DIR__ . '/../../../../bootstrap.php';
+use BTQueue\Core\Database;
+
+header('Content-Type: application/json; charset=utf-8');
+
+try {
+    $input = file_get_contents('php://input');
+    $dados = json_decode($input, true);
+    $uuids = $dados['uuids'] ?? [];
+
+    if (!is_array($uuids) || empty($uuids)) {
+        echo json_encode(['success' => true, 'data' => []]);
+        exit;
+    }
+
+    // Detecta campo de código
+    $resInfo = Database::getInstance()->query("PRAGMA table_info(senhas)");
+    $cols = array_column($resInfo->fetchAll(PDO::FETCH_ASSOC), 'name');
+    $campoCodigo = in_array('codigo', $cols) ? 's.codigo' : 's.senha';
+
+    $placeholders = implode(',', array_fill(0, count($uuids), '?'));
+    $sql = "SELECT s.id, $campoCodigo as senha, s.status, s.guiche_id, s.servico_id, s.cliente_uuid,
+                   sv.nome as servico_nome, sv.icone as servico_icone, sv.cor as servico_cor, sv.tempo_medio,
+                   g.nome as guiche_nome
+            FROM senhas s
+            LEFT JOIN servicos sv ON sv.id = s.servico_id
+            LEFT JOIN guiches g ON g.id = s.guiche_id
+            WHERE s.cliente_uuid IN ($placeholders)";
+
+    $rows = Database::fetchAll($sql, $uuids);
+
+    $results = [];
+    foreach ($rows as $s) {
+        // Calcula posição para cada uma
+        $posicaoRes = Database::fetch("
+            SELECT COUNT(*) AS total
+            FROM senhas
+            WHERE status IN ('AGUARDANDO', 'CONGELADA')
+              AND servico_id = ?
+              AND id < ?
+        ", [(int)$s['servico_id'], (int)$s['id']]);
+
+        $pessoas = (int)($posicaoRes['total'] ?? 0);
+
+        $results[] = [
+            'id' => $s['id'],
+            'uuid' => $s['cliente_uuid'],
+            'senha' => $s['senha'],
+            'status' => $s['status'],
+            'servico' => $s['servico_nome'],
+            'icone' => $s['servico_icone'] ?: '📋',
+            'cor' => $s['servico_cor'] ?: '#1565C0',
+            'guiche' => $s['guiche_nome'] ?: '--',
+            'posicao' => $s['status'] === 'CONGELADA' ? '--' : $pessoas,
+            'tempo_estimado' => $s['status'] === 'CONGELADA' ? 0 : ($pessoas * (int)($s['tempo_medio'] ?? 10))
+        ];
+    }
+
+    echo json_encode(['success' => true, 'data' => $results], JSON_UNESCAPED_UNICODE);
+
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+}
