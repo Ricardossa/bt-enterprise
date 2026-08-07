@@ -83,14 +83,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         const hora = agd.data_agendamento.split(' ')[1].substring(0, 5);
                         const label = dados.label_cliente || 'Paciente';
 
+                        // Limpeza inteligente: Remove o texto "ATENDIMENTO" se ele vier no título do Google
+                        let nomeLimpo = agd.nome_cliente.replace(/ATENDIMENTO/gi, '').trim();
+
                         div.innerHTML = `
-                            <div>
-                                <b style="color:var(--warning)">${hora} - ${agd.nome_cliente || label}</b><br>
-                                <small style="color:var(--text3)">Agendado via Google</small>
+                            <div style="display:flex; align-items:center; gap:15px; width:100%;">
+                                <div style="background:var(--warning); color:#000; padding:5px 10px; border-radius:8px; font-weight:900; font-size:14px; min-width:60px; text-align:center;">
+                                    ${hora}
+                                </div>
+                                <div style="flex:1; text-align:left;">
+                                    <span style="font-size:10px; color:var(--text3); text-transform:uppercase; display:block;">${label}</span>
+                                    <b style="color:#fff; font-size:14px;">${nomeLimpo}</b>
+                                </div>
+                                <button class="btn-chamar-agd" onclick="BT_OP.chamarAgendado(${agd.id})" style="background:rgba(255, 193, 7, 0.1); color:var(--warning); border:1px solid var(--warning); padding:8px 15px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer; transition:0.3s;">
+                                    CHAMAR
+                                </button>
                             </div>
-                            <button class="btn-chamar-agd" onclick="BT_OP.chamarAgendado(${agd.id})" style="background:var(--warning); color:#000; border:none; padding:5px 10px; border-radius:5px; font-size:10px; font-weight:bold; cursor:pointer;">
-                                CHAMAR
-                            </button>
                         `;
                         $dom.listaAgenda.appendChild(div);
                     });

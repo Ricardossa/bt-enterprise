@@ -2,12 +2,14 @@
 declare(strict_types=1);
 
 /**
- * BT Queue - Multi-Ticket Check API (DIAMOND SAFE v5.6.5)
- * Verifica o status de múltiplas senhas com blindagem contra banco desatualizado.
+ * BT Queue - Multi-Ticket Check API (DIAMOND SHIELD v5.6.6)
  */
 
 require_once __DIR__ . '/../../../bootstrap.php';
 use BTQueue\Core\Database;
+
+// IMPORTANTE: Necessário para usar as constantes do PDO no fetchAll
+use PDO;
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -21,13 +23,12 @@ try {
         exit;
     }
 
-    // --- BLINDAGEM DE COLUNAS (v5.6.5) ---
-    $resInfo = Database::getInstance()->query("PRAGMA table_info(senhas)");
-    $cols = array_column($resInfo->fetchAll(PDO::FETCH_ASSOC), 'name');
+    // --- BLINDAGEM DE COLUNAS (v5.6.6) ---
+    // Usamos o método do Database para evitar chamadas diretas ao PDO sem 'use PDO' local
+    $resInfo = Database::fetchAll("PRAGMA table_info(senhas)");
+    $cols = array_column($resInfo, 'name');
 
     $campoCodigo = in_array('codigo', $cols) ? 's.codigo' : 's.senha';
-    $hasHospital = in_array('nome_cliente', $cols);
-    $hasSchedule = in_array('data_agendamento', $cols);
 
     $placeholders = implode(',', array_fill(0, count($uuids), '?'));
     $sql = "SELECT s.id, $campoCodigo as senha, s.status, s.guiche_id, s.servico_id, s.cliente_uuid,
@@ -46,8 +47,6 @@ try {
         $pessoas = 0;
         $mensagem = '';
 
-        // Se o banco não conhece CONGELADA, tratamos como AGUARDANDO para não quebrar a lógica
-        $targetStatuses = "('AGUARDANDO', 'CONGELADA')";
         if ($status === 'AGUARDANDO' || $status === 'CONGELADA') {
             $posicaoRes = Database::fetch("
                 SELECT COUNT(*) AS total
@@ -59,7 +58,7 @@ try {
             $pessoas = (int)($posicaoRes['total'] ?? 0);
 
             if ($status === 'CONGELADA') {
-                $mensagem = '❄️ Sua senha está reservada. Aguardando término do atendimento atual.';
+                $mensagem = '❄️ Sua vez está reservada. Aguardando outro atendimento.';
             } else {
                 $mensagem = ($pessoas === 0) ? '🟢 Você é o próximo da fila!' : "Há $pessoas pessoa(s) à sua frente.";
             }
@@ -88,6 +87,6 @@ try {
 
 } catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Erro na sincronia múltipla: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
 }
 ?>
