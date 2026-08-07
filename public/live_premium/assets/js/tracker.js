@@ -49,9 +49,19 @@ BT.tracker = {
                 this.renderTickets(json.data);
                 this.checkCalls(json.data);
 
-                // Se todas as senhas foram finalizadas, limpa e encerra
-                if (json.data.length === 0) {
-                    this.finishSession();
+                // --- LÓGICA DE LIMPEZA E SAÍDA (v5.3) ---
+                const activeTickets = json.data.filter(t => t.status !== 'FINALIZADA');
+
+                if (activeTickets.length === 0 && json.data.length > 0) {
+                    // Se todas as senhas foram finalizadas, espera 5 segundos para o cliente ver o "Obrigado" e encerra
+                    if (!this.exitTimer) {
+                        this.exitTimer = setTimeout(() => this.finishSession(), 6000);
+                    }
+                } else {
+                    // Atualiza a lista de UUIDs apenas com os ativos para o próximo ciclo
+                    this.uuids = activeTickets.map(t => t.uuid);
+                    // Atualiza o localStorage para refletir apenas o que ainda não terminou
+                    localStorage.setItem('bt_premium_tickets', JSON.stringify(activeTickets));
                 }
             }
         } catch (e) { console.error("Multi-Sync Error", e); }
@@ -64,23 +74,21 @@ BT.tracker = {
         container.innerHTML = data.map(t => {
             const isFrozen = (t.status === 'CONGELADA');
             const isCalling = (t.status === 'CHAMANDO');
+            const isFinished = (t.status === 'FINALIZADA');
 
             let statusLabel = 'Em Espera';
             let dotColor = 'var(--secondary)';
-            let msg = `Há ${t.posicao} pessoa(s) à frente.`;
+            let msg = t.mensagem;
 
             if (isFrozen) {
                 statusLabel = 'Pausada ❄️';
                 dotColor = '#1DB4FF';
-                msg = 'Sua vez está reservada. Aguardando outro atendimento.';
             } else if (isCalling) {
                 statusLabel = 'SUA VEZ! 🔔';
                 dotColor = 'var(--success)';
-                msg = 'Dirija-se ao local indicado.';
-            }
-
-            if (t.posicao === 0 && !isFrozen && !isCalling) {
-                msg = 'Você é o próximo da fila!';
+            } else if (isFinished) {
+                statusLabel = 'Concluído ✅';
+                dotColor = '#94a3b8';
             }
 
             return `

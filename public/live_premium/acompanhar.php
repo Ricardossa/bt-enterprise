@@ -60,7 +60,8 @@ $baseUrl = $protocol . $_SERVER['HTTP_HOST'] . str_replace('live_premium/acompan
         <div id="call-alert" class="call-overlay-premium" style="display:none;">
              <h2 style="font-weight:900;">🔔 CHAMANDO!</h2>
              <h1 id="alert-guiche">GUICHÊ --</h1>
-             <p id="alert-servico" style="font-size: 14px; opacity: 0.8;"></p>
+             <p id="alert-servico" style="font-size: 14px; opacity: 0.8; margin-bottom: 30px;"></p>
+             <button class="bt-button" style="background:#fff; color:var(--bg); font-weight:bold; padding: 15px 40px; border-radius: 50px;" onclick="document.getElementById('call-alert').style.display='none'">ESTOU A CAMINHO</button>
         </div>
 
         <!-- ÁREA DE PROMOÇÕES -->

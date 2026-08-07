@@ -39,28 +39,43 @@ try {
 
     $results = [];
     foreach ($rows as $s) {
-        // Calcula posição para cada uma
-        $posicaoRes = Database::fetch("
-            SELECT COUNT(*) AS total
-            FROM senhas
-            WHERE status IN ('AGUARDANDO', 'CONGELADA')
-              AND servico_id = ?
-              AND id < ?
-        ", [(int)$s['servico_id'], (int)$s['id']]);
+        $status = strtoupper($s['status']);
+        $pessoas = 0;
+        $mensagem = '';
 
-        $pessoas = (int)($posicaoRes['total'] ?? 0);
+        if ($status === 'AGUARDANDO' || $status === 'CONGELADA') {
+            $posicaoRes = Database::fetch("
+                SELECT COUNT(*) AS total
+                FROM senhas
+                WHERE status IN ('AGUARDANDO', 'CONGELADA')
+                  AND servico_id = ?
+                  AND id < ?
+            ", [(int)$s['servico_id'], (int)$s['id']]);
+            $pessoas = (int)($posicaoRes['total'] ?? 0);
+
+            if ($status === 'CONGELADA') {
+                $mensagem = '❄️ Sua senha está reservada. Aguardando outro atendimento.';
+            } else {
+                $mensagem = ($pessoas === 0) ? '🟢 Você é o próximo da fila!' : "Há $pessoas pessoa(s) à sua frente.";
+            }
+        } elseif ($status === 'CHAMANDO') {
+            $mensagem = '🔔 SUA VEZ! Dirija-se ao local indicado.';
+        } else {
+            $mensagem = '✅ Atendimento concluído. Obrigado!';
+        }
 
         $results[] = [
             'id' => $s['id'],
             'uuid' => $s['cliente_uuid'],
             'senha' => $s['senha'],
-            'status' => $s['status'],
+            'status' => $status,
             'servico' => $s['servico_nome'],
             'icone' => $s['servico_icone'] ?: '📋',
             'cor' => $s['servico_cor'] ?: '#1565C0',
             'guiche' => $s['guiche_nome'] ?: '--',
-            'posicao' => $s['status'] === 'CONGELADA' ? '--' : $pessoas,
-            'tempo_estimado' => $s['status'] === 'CONGELADA' ? 0 : ($pessoas * (int)($s['tempo_medio'] ?? 10))
+            'posicao' => ($status === 'AGUARDANDO') ? $pessoas : '--',
+            'tempo_estimado' => ($status === 'AGUARDANDO') ? ($pessoas * (int)($s['tempo_medio'] ?? 10)) : 0,
+            'mensagem' => $mensagem
         ];
     }
 
