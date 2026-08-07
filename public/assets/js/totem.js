@@ -75,9 +75,9 @@ BT.totem = {
         }
 
         // Garante que a barra final esteja correta e aponta para o mobile
-        let pathMobile = "live_premium/index.php?new=1";
+        let pathMobile = "live_premium/index.php"; // Removido o ?new=1 para preservar múltiplas senhas
         if (this.currentToken) {
-            pathMobile += "&t=" + this.currentToken;
+            pathMobile += "?t=" + this.currentToken;
         }
 
         // --- SMART PATH DETECTION (Fix para Cliente vs Nuvem) ---

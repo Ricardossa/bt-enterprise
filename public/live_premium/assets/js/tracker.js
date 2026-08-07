@@ -49,19 +49,18 @@ BT.tracker = {
                 this.renderTickets(json.data);
                 this.checkCalls(json.data);
 
-                // --- LÓGICA DE LIMPEZA E SAÍDA (v5.3) ---
+                // --- LÓGICA DE LIMPEZA E SAÍDA (v5.4 Diamond) ---
                 const activeTickets = json.data.filter(t => t.status !== 'FINALIZADA');
+                const hasFinished = json.data.some(t => t.status === 'FINALIZADA');
 
-                if (activeTickets.length === 0 && json.data.length > 0) {
-                    // Se todas as senhas foram finalizadas, espera 5 segundos para o cliente ver o "Obrigado" e encerra
+                if (activeTickets.length === 0 && hasFinished) {
                     if (!this.exitTimer) {
-                        this.exitTimer = setTimeout(() => this.finishSession(), 6000);
+                        console.log("🏁 Sessão finalizada. Redirecionando em 8s...");
+                        this.exitTimer = setTimeout(() => this.finishSession(), 8000);
                     }
-                } else {
-                    // Atualiza a lista de UUIDs apenas com os ativos para o próximo ciclo
-                    this.uuids = activeTickets.map(t => t.uuid);
-                    // Atualiza o localStorage para refletir apenas o que ainda não terminou
-                    localStorage.setItem('bt_premium_tickets', JSON.stringify(activeTickets));
+                } else if (json.data.length > 0) {
+                    this.uuids = json.data.map(t => t.cliente_uuid);
+                    localStorage.setItem('bt_premium_tickets', JSON.stringify(json.data));
                 }
             }
         } catch (e) { console.error("Multi-Sync Error", e); }
@@ -71,7 +70,14 @@ BT.tracker = {
         const container = document.getElementById('tickets-container');
         if (!container) return;
 
-        container.innerHTML = data.map(t => {
+        // Ordena por Status: Primeiro as que estão CHAMANDO, depois AGUARDANDO, depois FINALIZADA
+        const sortedData = [...data].sort((a, b) => {
+            if (a.status === 'CHAMANDO') return -1;
+            if (b.status === 'CHAMANDO') return 1;
+            return 0;
+        });
+
+        container.innerHTML = sortedData.map(t => {
             const isFrozen = (t.status === 'CONGELADA');
             const isCalling = (t.status === 'CHAMANDO');
             const isFinished = (t.status === 'FINALIZADA');

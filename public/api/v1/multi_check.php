@@ -66,7 +66,7 @@ try {
 
         $results[] = [
             'id' => $s['id'],
-            'uuid' => $s['cliente_uuid'],
+            'cliente_uuid' => $s['cliente_uuid'], // Padronizado para cliente_uuid
             'senha' => $s['senha'],
             'status' => $status,
             'servico' => $s['servico_nome'],
