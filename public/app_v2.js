@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let atendimentoAtual = null;
     let agendadosAnteriores = [];
+    let filaAnterior = [];
 
     function obterParametrosAtivos() {
         return {
@@ -53,6 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             $dom.listaFila.innerHTML = '';
+
+            // --- ALERTA DE NOVA SENHA NA FILA (TOTEM) (DIAMOND v5.8.8) ---
+            if (dados.fila && dados.fila.length > filaAnterior.length) {
+                const ultima = dados.fila[dados.fila.length - 1];
+                BT.toast.sucesso("🎟️ Nova Senha na Fila: " + (ultima.codigo || '---'));
+                try { new Audio('assets/audio/alert.mp3').play(); } catch(e){}
+            }
+            filaAnterior = dados.fila || [];
+
             if (dados.fila && dados.fila.length > 0) {
                 dados.fila.forEach(senha => {
                     const div = document.createElement('div');
