@@ -12,7 +12,8 @@ try {
 } catch (Exception $e) {}
 
 $empresa = $config['empresa'] ?? 'BT Queue Enterprise';
-$logoUrl = '/painel_v4/public/uploads/logo.png';
+$logoLocal = 'uploads/logo.png';
+$logoUrl = file_exists(__DIR__ . '/' . $logoLocal) ? $logoLocal : 'assets/img/logo-placeholder.png';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -21,7 +22,7 @@ $logoUrl = '/painel_v4/public/uploads/logo.png';
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>TV Cinema - <?= htmlspecialchars($empresa) ?></title>
 
-    <link rel="stylesheet" href="assets/css/tv_premium.css">
+    <link rel="stylesheet" href="assets/css/tv_premium.css?v=5.8.7">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 </head>
@@ -29,7 +30,10 @@ $logoUrl = '/painel_v4/public/uploads/logo.png';
 
     <!-- TOPBAR -->
     <header class="tv-topbar">
-        <img src="<?= $logoUrl ?>" class="tv-logo" alt="Logo" onerror="this.src='http://api.brandaotech.com.br:8080/uploads/logo/logo.png'">
+        <div class="tv-logo-container">
+            <img src="<?= $logoUrl ?>" class="tv-logo" alt="Logo" onerror="this.src='https://api.brandaotech.com.br/uploads/logo_padrao.png'">
+        </div>
+        <div class="tv-company-name"><?= htmlspecialchars($empresa) ?></div>
         <div id="tv-clock" class="tv-clock">00:00:00</div>
     </header>
 

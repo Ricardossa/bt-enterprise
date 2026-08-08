@@ -3,6 +3,16 @@ declare(strict_types=1);
 
 date_default_timezone_set('America/Bahia');
 
+// [SESSÃO DE LONGA DURAÇÃO] - 24 Horas de validade (v5.8.7 Diamond)
+ini_set('session.gc_maxlifetime', '86400');
+ini_set('session.cookie_lifetime', '86400');
+session_set_cookie_params(86400);
+
+// [CARREGAMENTO DE VERSÃO]
+$versionFile = __DIR__ . '/public/version.json';
+$versionData = file_exists($versionFile) ? json_decode((string)file_get_contents($versionFile), true) : null;
+define('BT_VERSION', $versionData['version'] ?? '4.0.0');
+
 // [AUTOLOADER] - Carregamento dinâmico de classes
 spl_autoload_register(function (string $class): void {
     $prefix = 'BTQueue\\Core\\';

@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let atendimentoAtual = null;
+    let agendadosAnteriores = [];
 
     function obterParametrosAtivos() {
         return {
@@ -73,6 +74,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- RENDERIZAÇÃO DA AGENDA DO DIA (HÍBRIDA) ---
             if ($dom.listaAgenda) {
                 $dom.listaAgenda.innerHTML = '';
+
+                // --- ALERTA DE NOVO AGENDAMENTO (DIAMOND v5.8.7) ---
+                if (dados.agendados && dados.agendados.length > agendadosAnteriores.length) {
+                    const nova = dados.agendados[dados.agendados.length - 1];
+                    BT.toast.aviso("📅 Novo Agendamento: " + nova.nome_cliente);
+                    try { new Audio('assets/audio/alert.mp3').play(); } catch(e){}
+                }
+                agendadosAnteriores = dados.agendados || [];
+
                 if (dados.agendados && dados.agendados.length > 0) {
                     dados.agendados.forEach(agd => {
                         const div = document.createElement('div');

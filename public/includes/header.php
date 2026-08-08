@@ -95,6 +95,9 @@ $isAdmin = Auth::isAdmin();
         <a href="logout.php" style="color:var(--danger);">
             <i class="fa-solid fa-right-from-bracket"></i> Sair
         </a>
+        <div style="margin-top:auto; padding: 20px 25px; font-size: 9px; color: rgba(255,255,255,0.2); text-align: center;">
+            <i class="fa-solid fa-microchip"></i> Build v<?= defined('BT_VERSION') ? BT_VERSION : '4.0.0' ?>
+        </div>
     </nav>
 </div>
 <?php endif; ?>
