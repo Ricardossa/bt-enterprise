@@ -20,6 +20,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let agendadosAnteriores = [];
     let filaAnterior = [];
 
+    // Solicita permissão para notificações nativas (v5.8.9 Diamond)
+    if ("Notification" in window) {
+        Notification.requestPermission();
+    }
+
+    function notify(title, body) {
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(title, { body: body, icon: 'assets/img/favicon.ico' });
+        }
+    }
+
     function obterParametrosAtivos() {
         return {
             servico_id: $dom.selectServico && $dom.selectServico.value ? parseInt($dom.selectServico.value, 10) : null,
@@ -59,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (dados.fila && dados.fila.length > filaAnterior.length) {
                 const ultima = dados.fila[dados.fila.length - 1];
                 BT.toast.sucesso("🎟️ Nova Senha na Fila: " + (ultima.codigo || '---'));
+                notify("🎟️ Nova Senha na Fila", (ultima.codigo || '---') + " - " + ultima.servico_nome);
                 try { new Audio('assets/audio/alert.mp3').play(); } catch(e){}
             }
             filaAnterior = dados.fila || [];
@@ -89,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (dados.agendados && dados.agendados.length > agendadosAnteriores.length) {
                     const nova = dados.agendados[dados.agendados.length - 1];
                     BT.toast.aviso("📅 Novo Agendamento: " + nova.nome_cliente);
+                    notify("📅 Novo Agendamento", nova.nome_cliente);
                     try { new Audio('assets/audio/alert.mp3').play(); } catch(e){}
                 }
                 agendadosAnteriores = dados.agendados || [];
