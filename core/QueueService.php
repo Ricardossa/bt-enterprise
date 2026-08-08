@@ -213,13 +213,14 @@ class QueueService
                 return [];
             }
 
-            // [ANTI-DUPLICATE QUERY] Agrupa por nome e hora para garantir limpeza visual
-            // Filtramos apenas as últimas 24h para evitar lixo de datas passadas
+            // [TIMEZONE SAFE] Usamos 'localtime' para bater com o horário de Brasília/Bahia
             $sql = "SELECT id, codigo, nome_cliente, data_agendamento, status
                     FROM senhas
                     WHERE status = 'AGENDADO'
-                    AND data_agendamento > datetime('now', '-2 hours')
-                    AND data_agendamento < datetime('now', '+18 hours') ";
+                    AND data_agendamento > datetime('now', 'localtime', '-5 hours')
+                    AND data_agendamento < datetime('now', 'localtime', '+18 hours')
+                    GROUP BY nome_cliente, data_agendamento
+                    ORDER BY data_agendamento ASC";
 
             $params = [];
             if ($servicoId) {
