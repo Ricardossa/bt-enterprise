@@ -47,6 +47,10 @@ final class UpdateService
 
     public function applyRelease(int $releaseId): array
     {
+        // Aumenta o tempo de vida do script para pacotes grandes
+        set_time_limit(600);
+        ini_set('memory_limit', '512M');
+
         $manifest = $this->check();
         if (empty($manifest['update_available']) || (int) ($manifest['release_id'] ?? 0) !== $releaseId) {
             throw new Exception('O release solicitado nao esta disponivel na Master.');
@@ -164,12 +168,28 @@ final class UpdateService
         if ($zip->open($destination, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new Exception('Nao foi possivel criar backup OTA.');
         }
+
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->wwwDir), \RecursiveIteratorIterator::LEAVES_ONLY);
+
+        // Pastas para ignorar no backup (muito grandes ou desnecessarias)
+        $ignore = ['cache', 'logs', 'runtime', 'database', '.git', 'output'];
+
         foreach ($files as $file) {
             if (!$file->isDir()) {
                 $path = $file->getRealPath();
                 $relative = substr($path, strlen($this->wwwDir) + 1);
-                if (!str_contains($relative, 'cache') && !str_contains($relative, 'logs')) $zip->addFile($path, $relative);
+
+                $shouldIgnore = false;
+                foreach ($ignore as $folder) {
+                    if (str_starts_with($relative, $folder . DIRECTORY_SEPARATOR) || str_starts_with($relative, $folder . '/')) {
+                        $shouldIgnore = true;
+                        break;
+                    }
+                }
+
+                if (!$shouldIgnore) {
+                    $zip->addFile($path, $relative);
+                }
             }
         }
         $zip->close();
