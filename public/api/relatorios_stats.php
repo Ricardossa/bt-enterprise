@@ -47,8 +47,7 @@ try {
             COUNT(*) as total_emitidas,
             AVG(CAST((strftime('%s', chamada_em) - strftime('%s', emitida_em)) AS INT) / 60.0) as espera_global
         FROM senhas
-        WHERE chamada_em IS NOT NULL
-        AND date(created_at) BETWEEN ? AND ?
+        WHERE date(created_at) BETWEEN ? AND ?
     ", $params);
 
     // 4. Movimento por Hora (Picos)

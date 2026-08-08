@@ -58,12 +58,12 @@ try {
     Database::execute(
         "INSERT INTO senhas (
             uuid, cliente_uuid, codigo, numero, prefixo,
-            nome_cliente, status, data_agendamento, servico_id, created_at
+            nome_cliente, status, data_agendamento, servico_id, created_at, emitida_em
         ) VALUES (
             ?, 'GOOGLE-CALENDAR', 'AGD', 0, 'G',
-            ?, 'AGENDADO', ?, ?, ?
+            ?, 'AGENDADO', ?, ?, ?, ?
         )",
-        [$uuid, $nome, $dataHora, $servicoId, $dataHora]
+        [$uuid, $nome, $dataHora, $servicoId, $dataHora, $dataHora]
     );
 
     echo json_encode([
