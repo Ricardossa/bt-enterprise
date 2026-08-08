@@ -49,8 +49,15 @@ class LicenseManager
      */
     public function isBlocked(): bool
     {
-        $res = Database::fetch("SELECT status FROM licencas LIMIT 1");
+        $res = Database::fetch("SELECT * FROM licencas LIMIT 1");
         if (!$res) return true; // Sem licença = Bloqueado
+
+        // --- VALIDAÇÃO DE INTEGRIDADE DIAMOND (v5.8.0) ---
+        if (!\BTQueue\Core\SecurityService::validateIntegrity($res)) {
+            \BTQueue\Core\Logger::error("🚨 TENTATIVA DE PIRATARIA DETECTADA: Assinatura de licença inválida.");
+            return true;
+        }
+
         return strtoupper($res['status']) === 'BLOQUEADA';
     }
 
