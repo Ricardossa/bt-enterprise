@@ -251,7 +251,7 @@ $pageTitle = 'Setup Wizard - BT Queue Enterprise';
             <input type="hidden" name="step" value="<?= $step ?>">
 
             <?php if ($step === 1): ?>
-                <h3>Verificação de Saúde do Windows</h3>
+                <h3>Verificação de Saúde do Sistema</h3>
                 <div style="margin: 20px 0;">
                     <?php foreach($requirements as $name => $ok): ?>
                         <div class="req-item">
