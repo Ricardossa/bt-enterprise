@@ -8,7 +8,7 @@ return [
         'name' => 'BT Queue Enterprise',
         'version' => '4.0.0',
         'timezone' => 'America/Bahia',
-        'debug' => true
+        'debug' => false
     ],
 
     'database' => [

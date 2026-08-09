@@ -110,6 +110,7 @@ class LicenseManager
                     ['feature_' . $key, $val ? '1' : '0']
                 );
             }
+            \BTQueue\Core\DiamondActivationService::sealLicense((int) $licenca['id']);
         } else {
             Database::execute(
                 "INSERT INTO licencas (cliente_id, chave, uuid, token, status, validade, ultima_validacao, cache_features)
@@ -124,6 +125,7 @@ class LicenseManager
                     $featuresJson
                 ]
             );
+            \BTQueue\Core\DiamondActivationService::sealLicense(Database::lastInsertId());
         }
     }
 

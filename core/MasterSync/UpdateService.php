@@ -98,9 +98,14 @@ final class UpdateService
             $zip = new ZipArchive();
             if ($zip->open($zipFile) !== true) throw new Exception('Falha ao abrir o pacote OTA.');
             $this->validateArchive($zip);
-            if (!$zip->extractTo($this->wwwDir)) {
+
+            // Tenta extrair com supressão de erros para capturar a falha real (v5.9.1)
+            if (!@$zip->extractTo($this->wwwDir)) {
+                $error = error_get_last();
                 $zip->close();
-                throw new Exception('Falha ao aplicar o pacote OTA.');
+                $msg = 'Falha ao aplicar o pacote OTA: ' . ($error['message'] ?? 'Erro de permissão ou arquivo ocupado');
+                Logger::error($msg, ['error' => $error], 'update');
+                throw new Exception($msg);
             }
 
             // --- MELHORIA: ATUALIZADOR DE LANÇADORES E PRINT BRIDGE ---

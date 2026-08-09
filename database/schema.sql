@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS licencas (
     validade DATETIME,
     ultima_validacao DATETIME,
     cache_assinatura TEXT,
+    hardware_id TEXT,
+    assinatura TEXT,
     offline_dias INTEGER DEFAULT 7,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(cliente_id) REFERENCES clientes(id)

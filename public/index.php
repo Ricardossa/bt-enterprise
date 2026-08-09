@@ -23,6 +23,7 @@ if (!$bootFile) die("<h1>❌ ERRO CRÍTICO: Motor não encontrado.</h1>");
 require_once $bootFile;
 
 use BTQueue\Core\Database;
+use BTQueue\Core\SecurityService;
 
 // --- CONFIGURAÇÃO DE CAMINHOS ---
 $dbFolder = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'database';
@@ -51,8 +52,9 @@ try {
     if (!$uuid || empty($uuid['valor'])) $goToSetup();
 
     // B. Existe Licença Ativa?
-    $licenca = Database::fetch("SELECT status FROM licencas LIMIT 1");
+    $licenca = Database::fetch("SELECT * FROM licencas LIMIT 1");
     if (!$licenca || strtoupper($licenca['status']) !== 'ATIVA') $goToSetup();
+    if (!SecurityService::validateIntegrity($licenca)) $goToSetup();
 
     // C. Existe pelo menos um Administrador?
     $admin = Database::fetch("SELECT id FROM operadores WHERE nivel = 'ADMIN' LIMIT 1");

@@ -5,6 +5,7 @@ require_once __DIR__ . '/../bootstrap.php';
 
 use BTQueue\Core\Database;
 use BTQueue\Core\DatabaseInstaller;
+use BTQueue\Core\DiamondActivationService;
 use BTQueue\Core\MasterSync\SyncService;
 
 function activatePin(string $masterUrl, string $pin): array
@@ -159,29 +160,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $licenseKey = strtoupper(bin2hex(random_bytes(6)));
 
-                // --- GERAÇÃO AUTOMÁTICA DE ESCUDO DIAMOND (v5.9.0) ---
-                $hwid = \BTQueue\Core\SecurityService::getHardwareId();
-                $sig = \BTQueue\Core\SecurityService::signData([
-                    'uuid' => $uuid,
-                    'status' => 'ATIVA',
-                    'validade' => date('Y-m-d', strtotime('+1 year'))
-                ], $token);
-
-                // Tenta criar licença inicial no banco já selada
+                // A licença é criada antes do selo; o selo acontece após o admin.
+                DiamondActivationService::ensureLicenseColumns();
                 Database::execute(
                     "INSERT OR REPLACE INTO licencas (cliente_id, chave, uuid, token, status, validade, hardware_id, assinatura)
-                     VALUES (?, ?, ?, ?, 'ATIVA', date('now', '+1 year'), ?, ?)",
-                    [$clienteId, $licenseKey, $uuid, $token, $hwid, $sig]
+                     VALUES (?, ?, ?, ?, 'ATIVA', date('now', '+1 year'), NULL, NULL)",
+                    [$clienteId, $licenseKey, $uuid, $token]
                 );
-
-                $sync = new SyncService();
-                $res = $sync->synchronize();
-                if ($res['success']) {
-                    header('Location: setup.php?step=4&ok=2');
-                    exit;
-                } else {
-                    $error = "Conectado ao banco, mas falha no sincronismo MasterSync: " . $res['message'];
-                }
+                header('Location: setup.php?step=4&ok=2');
+                exit;
             }
         }
     }
@@ -197,6 +184,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hash = password_hash($pass, PASSWORD_DEFAULT);
             Database::execute("DELETE FROM operadores WHERE login = ?", [$user]);
             Database::execute("INSERT INTO operadores (nome, login, senha, nivel, ativo) VALUES (?, ?, ?, 'ADMIN', 1)", ['Administrador Geral', $user, $hash]);
+
+            $license = Database::fetch('SELECT id FROM licencas LIMIT 1');
+            if (!$license) {
+                throw new RuntimeException('Licença inicial não encontrada.');
+            }
+            $sync = new SyncService();
+            $syncResult = $sync->synchronize();
+            if (!$syncResult['success']) {
+                throw new RuntimeException('Falha no MasterSync: ' . $syncResult['message']);
+            }
+            DiamondActivationService::sealLicense((int) $license['id']);
 
             // Cria arquivo de trava de instalação
             file_put_contents(dirname(__DIR__) . '/database/.installed', date('Y-m-d H:i:s'));

@@ -61,6 +61,9 @@ final class DatabaseInstaller
             $db->exec($seedsSql);
             $results[] = "✅ Dados iniciais configurados.";
 
+            // Compatibilidade também para templates gerados antes do Diamond.
+            DiamondActivationService::ensureLicenseColumns();
+
             // 5. Garante que a URL da Master está sempre configurada no banco inicial
             Database::execute(
                 "INSERT OR IGNORE INTO configuracoes (chave, valor, tipo, descricao) VALUES (?, ?, 'STRING', ?)",
@@ -86,17 +89,11 @@ final class DatabaseInstaller
             );
             $results[] = "✅ Identidade gerada: $uuid";
 
-            // 6. Marca todas as migrations atuais como concluídas (Evita re-execução em banco novo)
-            $migrationDir = dirname(__DIR__) . '/database/migrations';
-            $arquivos = glob($migrationDir . '/*.sql');
-            foreach ($arquivos as $arquivo) {
-                $nome = basename($arquivo);
-                Database::execute(
-                    "INSERT OR IGNORE INTO migrations (arquivo, checksum, executado_em) VALUES (?, ?, CURRENT_TIMESTAMP)",
-                    [$nome, md5_file($arquivo)]
-                );
+            $migrationResult = (new Migration())->run();
+            if (!$migrationResult['success']) {
+                throw new Exception($migrationResult['message']);
             }
-            $results[] = "✅ Histórico de migrações inicializado.";
+            $results[] = "✅ Migrations executadas.";
 
             return [
                 'success' => true,
