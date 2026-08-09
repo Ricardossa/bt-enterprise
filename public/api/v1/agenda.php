@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../../bootstrap.php';
 use BTQueue\Core\ScheduleService;
 use BTQueue\Core\Database;
 use BTQueue\Core\Auth;
+use BTQueue\Core\Logger;
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -44,6 +45,7 @@ try {
     // 4. SALVAR REGRAS DE UM SERVIÇO
     if ($method === 'POST' && $action === 'save_regras') {
         Auth::protegerAPI('ADMIN');
+
         $rawInput = file_get_contents('php://input');
         $input = json_decode($rawInput, true);
 
@@ -63,7 +65,10 @@ try {
         try {
             $db = Database::getInstance();
 
-            // 1. Limpa regras antigas de forma direta
+            // Inicia operação atômica de troca de regras
+            Database::beginImmediate();
+
+            // 1. Limpa regras antigas
             $stmtDel = $db->prepare("DELETE FROM agenda_regras WHERE servico_id = ?");
             $stmtDel->execute([$servicoId]);
 
@@ -83,11 +88,16 @@ try {
                 ]);
             }
 
-            echo json_encode(['success' => true, 'message' => 'Regras salvas com sucesso!']);
+            Database::commit();
+            Logger::info("Agenda do serviço $servicoId atualizada.", ['regras' => count($regras)], 'agenda');
+
+            echo json_encode(['success' => true, 'message' => 'Agenda salva com sucesso!']);
             exit;
         } catch (Throwable $dbError) {
+            Database::rollback();
+            Logger::error("Falha ao salvar agenda: " . $dbError->getMessage(), [], 'agenda');
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Erro no banco: ' . $dbError->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Erro interno no banco de dados.']);
             exit;
         }
     }

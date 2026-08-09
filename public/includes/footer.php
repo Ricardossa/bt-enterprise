@@ -1,8 +1,8 @@
     </div>
 
-    <script src="/painel_v4/public/assets/js/api.js?v=1"></script>
-    <script src="/painel_v4/public/assets/js/config.js?v=1"></script>
-    <script src="/painel_v4/public/assets/js/toast.js?v=1"></script>
+    <script src="assets/js/api.js?v=5"></script>
+    <script src="assets/js/config.js?v=5"></script>
+    <script src="assets/js/toast.js?v=5"></script>
 
 <?php
 if (!empty($pageScripts)) {
