@@ -4,8 +4,14 @@ declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 use BTQueue\Core\Auth;
 use BTQueue\Core\Database;
+use BTQueue\Core\MasterSync\LicenseManager;
 
 Auth::protegerPagina('ADMIN');
+
+if (!LicenseManager::hasFeature('hybrid_scheduling')) {
+    header('Location: dashboard.php?error=feature_locked');
+    exit;
+}
 
 $servicos = Database::fetchAll("SELECT id, nome FROM servicos WHERE ativo = 1 ORDER BY nome ASC");
 

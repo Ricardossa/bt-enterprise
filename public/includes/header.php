@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/components/brand.php';
 use BTQueue\Core\Auth;
+use BTQueue\Core\MasterSync\LicenseManager;
 
 $pageTitle = $pageTitle ?? $empresa;
 $usuarioLogado = Auth::operador();
@@ -73,9 +74,11 @@ $isAdmin = Auth::isAdmin();
                 <i class="fa-solid fa-briefcase"></i> Serviços
             </a>
 
+            <?php if (LicenseManager::hasFeature('hybrid_scheduling')): ?>
             <a href="gerenciar_agenda.php">
                 <i class="fa-solid fa-calendar-check"></i> Gerenciar Agenda
             </a>
+            <?php endif; ?>
 
             <a href="guiches.php">
                 <i class="fa-solid fa-desktop"></i> Guichês

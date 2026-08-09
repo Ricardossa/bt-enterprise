@@ -2,6 +2,11 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 use BTQueue\Core\Database;
+use BTQueue\Core\MasterSync\LicenseManager;
+
+if (!LicenseManager::hasFeature('hybrid_scheduling')) {
+    die("<h1 style='text-align:center; margin-top:50px; color:#ff4d4d;'>Módulo de Agendamento não disponível para este plano.</h1>");
+}
 
 $config = [];
 try {
