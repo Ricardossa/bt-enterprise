@@ -73,6 +73,10 @@ $isAdmin = Auth::isAdmin();
                 <i class="fa-solid fa-briefcase"></i> Serviços
             </a>
 
+            <a href="gerenciar_agenda.php">
+                <i class="fa-solid fa-calendar-check"></i> Gerenciar Agenda
+            </a>
+
             <a href="guiches.php">
                 <i class="fa-solid fa-desktop"></i> Guichês
             </a>

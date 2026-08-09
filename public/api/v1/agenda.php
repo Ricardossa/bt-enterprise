@@ -4,21 +4,23 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../../bootstrap.php';
 use BTQueue\Core\ScheduleService;
 use BTQueue\Core\Database;
+use BTQueue\Core\Auth;
 
 header('Content-Type: application/json; charset=utf-8');
 
 try {
     $service = new ScheduleService();
     $method = $_SERVER['REQUEST_METHOD'];
+    $action = $_GET['action'] ?? '';
 
-    // 1. LISTAR SERVIÇOS QUE PERMITEM AGENDAMENTO
-    if ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'servicos') {
+    // 1. LISTAR SERVIÇOS QUE PERMITEM AGENDAMENTO (PÚBLICO)
+    if ($method === 'GET' && $action === 'servicos') {
         $servicos = Database::fetchAll("SELECT id, nome, icone, cor FROM servicos WHERE ativo = 1 ORDER BY nome ASC");
         echo json_encode(['success' => true, 'data' => $servicos]);
         exit;
     }
 
-    // 2. BUSCAR SLOTS DISPONÍVEIS
+    // 2. BUSCAR SLOTS DISPONÍVEIS (PÚBLICO)
     if ($method === 'GET' && isset($_GET['servico_id'], $_GET['data'])) {
         $servicoId = (int)$_GET['servico_id'];
         $data = $_GET['data']; // YYYY-MM-DD
@@ -28,7 +30,50 @@ try {
         exit;
     }
 
-    // 3. REALIZAR RESERVA
+    // --- AÇÕES ADMINISTRATIVAS (REQUER LOGIN) ---
+
+    // 3. BUSCAR REGRAS DE UM SERVIÇO
+    if ($method === 'GET' && $action === 'get_regras') {
+        Auth::protegerAPI('ADMIN');
+        $servicoId = (int)$_GET['servico_id'];
+        $regras = Database::fetchAll("SELECT * FROM agenda_regras WHERE servico_id = ? ORDER BY dia_semana ASC", [$servicoId]);
+        echo json_encode(['success' => true, 'data' => $regras]);
+        exit;
+    }
+
+    // 4. SALVAR REGRAS DE UM SERVIÇO
+    if ($method === 'POST' && $action === 'save_regras') {
+        Auth::protegerAPI('ADMIN');
+        $input = json_decode(file_get_contents('php://input'), true);
+        $servicoId = (int)($input['servico_id'] ?? 0);
+        $regras = $input['regras'] ?? [];
+
+        if (!$servicoId) throw new Exception("ID do serviço inválido.");
+
+        Database::begin();
+        // Remove regras antigas para reinserir
+        Database::execute("DELETE FROM agenda_regras WHERE servico_id = ?", [$servicoId]);
+
+        foreach ($regras as $r) {
+            Database::execute(
+                "INSERT INTO agenda_regras (servico_id, dia_semana, hora_inicio, hora_fim, duracao_slot, ativo)
+                 VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    $servicoId,
+                    (int)$r['dia_semana'],
+                    $r['hora_inicio'],
+                    $r['hora_fim'],
+                    (int)($r['duracao_slot'] ?? 30),
+                    (int)($r['ativo'] ?? 1)
+                ]
+            );
+        }
+        Database::commit();
+        echo json_encode(['success' => true, 'message' => 'Regras salvas com sucesso!']);
+        exit;
+    }
+
+    // 5. REALIZAR RESERVA (PÚBLICO)
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
 
@@ -52,6 +97,7 @@ try {
     echo json_encode(['success' => false, 'message' => 'Requisição inválida.']);
 
 } catch (Throwable $e) {
+    if (Database::getInstance()->inTransaction()) Database::rollback();
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
