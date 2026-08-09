@@ -159,14 +159,18 @@ include __DIR__ . '/includes/header.php';
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ servico_id: servicoId, regras })
             });
+
             const json = await res.json();
 
             if (json.success) {
                 BT.toast.sucesso("Agenda atualizada com sucesso!");
             } else {
-                alert(json.message);
+                alert("Erro: " + (json.message || "Falha desconhecida"));
             }
-        } catch (e) { alert("Erro ao salvar."); }
+        } catch (e) {
+            console.error(e);
+            alert("Erro crítico na comunicação com o servidor.");
+        }
 
         $dom.btnSalvar.disabled = false;
         $dom.btnSalvar.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> SALVAR CONFIGURAÇÃO';

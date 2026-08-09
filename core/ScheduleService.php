@@ -25,14 +25,14 @@ final class ScheduleService
      */
     public function getSlotsDisponiveis(int $servicoId, string $data): array
     {
-        // 1. Busca a regra de funcionamento para o dia da semana
+        // 1. Busca a regra de funcionamento para o dia da semana (Garante que esteja ativa)
         $diaSemana = (int)date('w', strtotime($data));
         $regra = Database::fetch(
-            "SELECT * FROM agenda_regras WHERE servico_id = ? AND dia_semana = ? LIMIT 1",
+            "SELECT * FROM agenda_regras WHERE servico_id = ? AND dia_semana = ? AND ativo = 1 LIMIT 1",
             [$servicoId, $diaSemana]
         );
 
-        if (!$regra) return []; // Não atende neste dia
+        if (!$regra) return []; // Não atende ou está desativado neste dia
 
         $inicio = $regra['hora_inicio'];
         $fim = $regra['hora_fim'];

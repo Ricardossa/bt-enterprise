@@ -44,7 +44,8 @@ try {
     // 4. SALVAR REGRAS DE UM SERVIÇO
     if ($method === 'POST' && $action === 'save_regras') {
         Auth::protegerAPI('ADMIN');
-        $input = json_decode(file_get_contents('php://input'), true);
+        $rawInput = file_get_contents('php://input');
+        $input = json_decode($rawInput, true);
 
         if (!$input) {
             $input = $_POST;
@@ -53,30 +54,42 @@ try {
         $servicoId = (int)($input['servico_id'] ?? 0);
         $regras = $input['regras'] ?? [];
 
-        if (!$servicoId) throw new Exception("ID do serviço inválido.");
-
-        // Limpa regras antigas para este serviço de forma segura
-        Database::execute("DELETE FROM agenda_regras WHERE servico_id = ?", [$servicoId]);
-
-        foreach ($regras as $r) {
-            if (!isset($r['dia_semana'], $r['hora_inicio'], $r['hora_fim'])) continue;
-
-            Database::execute(
-                "INSERT INTO agenda_regras (servico_id, dia_semana, hora_inicio, hora_fim, duracao_slot, ativo)
-                 VALUES (?, ?, ?, ?, ?, ?)",
-                [
-                    $servicoId,
-                    (int)$r['dia_semana'],
-                    (string)$r['hora_inicio'],
-                    (string)$r['hora_fim'],
-                    (int)($r['duracao_slot'] ?? 30),
-                    (int)($r['ativo'] ?? 0)
-                ]
-            );
+        if (!$servicoId) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID do serviço inválido.']);
+            exit;
         }
 
-        echo json_encode(['success' => true, 'message' => 'Regras salvas com sucesso!']);
-        exit;
+        try {
+            $db = Database::getInstance();
+
+            // 1. Limpa regras antigas de forma direta
+            $stmtDel = $db->prepare("DELETE FROM agenda_regras WHERE servico_id = ?");
+            $stmtDel->execute([$servicoId]);
+
+            // 2. Insere novas regras
+            $stmtIns = $db->prepare("INSERT INTO agenda_regras (servico_id, dia_semana, hora_inicio, hora_fim, duracao_slot, ativo) VALUES (?, ?, ?, ?, ?, ?)");
+
+            foreach ($regras as $r) {
+                if (!isset($r['dia_semana'])) continue;
+
+                $stmtIns->execute([
+                    $servicoId,
+                    (int)$r['dia_semana'],
+                    (string)($r['hora_inicio'] ?? '08:00'),
+                    (string)($r['hora_fim'] ?? '18:00'),
+                    (int)($r['duracao_slot'] ?? 30),
+                    (int)($r['ativo'] ?? 0)
+                ]);
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Regras salvas com sucesso!']);
+            exit;
+        } catch (Throwable $dbError) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Erro no banco: ' . $dbError->getMessage()]);
+            exit;
+        }
     }
 
     // 5. REALIZAR RESERVA (PÚBLICO)
