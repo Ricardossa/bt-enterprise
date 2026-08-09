@@ -218,9 +218,7 @@ class QueueService
                     FROM senhas
                     WHERE status = 'AGENDADO'
                     AND data_agendamento > datetime('now', 'localtime', '-5 hours')
-                    AND data_agendamento < datetime('now', 'localtime', '+18 hours')
-                    GROUP BY nome_cliente, data_agendamento
-                    ORDER BY data_agendamento ASC";
+                    AND data_agendamento < datetime('now', 'localtime', '+18 hours') ";
 
             $params = [];
             if ($servicoId) {
@@ -228,8 +226,8 @@ class QueueService
                 $params[] = $servicoId;
             }
 
-            $sql .= " GROUP BY nome_cliente, data_agendamento ";
-            $sql .= " ORDER BY data_agendamento ASC";
+            // Agrupa e ordena no final
+            $sql .= " GROUP BY nome_cliente, data_agendamento ORDER BY data_agendamento ASC";
 
             return Database::fetchAll($sql, $params);
         } catch (Throwable $e) {

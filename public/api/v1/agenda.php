@@ -45,6 +45,11 @@ try {
     if ($method === 'POST' && $action === 'save_regras') {
         Auth::protegerAPI('ADMIN');
         $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!$input) {
+            $input = $_POST;
+        }
+
         $servicoId = (int)($input['servico_id'] ?? 0);
         $regras = $input['regras'] ?? [];
 
@@ -54,16 +59,18 @@ try {
         Database::execute("DELETE FROM agenda_regras WHERE servico_id = ?", [$servicoId]);
 
         foreach ($regras as $r) {
+            if (!isset($r['dia_semana'], $r['hora_inicio'], $r['hora_fim'])) continue;
+
             Database::execute(
                 "INSERT INTO agenda_regras (servico_id, dia_semana, hora_inicio, hora_fim, duracao_slot, ativo)
                  VALUES (?, ?, ?, ?, ?, ?)",
                 [
                     $servicoId,
                     (int)$r['dia_semana'],
-                    $r['hora_inicio'],
-                    $r['hora_fim'],
+                    (string)$r['hora_inicio'],
+                    (string)$r['hora_fim'],
                     (int)($r['duracao_slot'] ?? 30),
-                    (int)($r['ativo'] ?? 1)
+                    (int)($r['ativo'] ?? 0)
                 ]
             );
         }
