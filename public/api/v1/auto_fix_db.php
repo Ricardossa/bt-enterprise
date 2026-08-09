@@ -1,7 +1,7 @@
 <?php
 /**
- * BT Queue - Silent Auto-Fix Database (DIAMOND v5.8.1)
- * Garante colunas novas e realiza o selo de hardware automático.
+ * BT Queue - Silent Auto-Fix Database (DIAMOND v5.9.6)
+ * Garante colunas novas, tabelas de agenda e selo de hardware automático.
  */
 
 use BTQueue\Core\Database;
@@ -11,12 +11,40 @@ use BTQueue\Core\SecurityService;
 date_default_timezone_set('America/Bahia');
 
 try {
+    // 1. GARANTE TABELAS DE AGENDAMENTO NATIVO (v5.9.6)
+    Database::execute("
+        CREATE TABLE IF NOT EXISTS agenda_regras (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            servico_id INTEGER NOT NULL,
+            dia_semana INTEGER NOT NULL,
+            hora_inicio TEXT NOT NULL,
+            hora_fim TEXT NOT NULL,
+            duracao_slot INTEGER DEFAULT 20,
+            ativo INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    Database::execute("
+        CREATE TABLE IF NOT EXISTS agenda_bloqueios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            data DATE NOT NULL,
+            hora_inicio TEXT,
+            hora_fim TEXT,
+            motivo TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    // 2. GARANTE COLUNAS NOVAS EM TABELAS EXISTENTES
     $migrations = [
         'senhas' => [
             'nome_cliente' => 'TEXT',
             'atendente_nome' => 'TEXT',
             'tipo_atendimento' => "TEXT DEFAULT 'NORMAL'",
-            'data_agendamento' => 'DATETIME'
+            'data_agendamento' => 'DATETIME',
+            'emitida_em' => 'DATETIME'
         ],
         'configuracoes' => [
             'label_cliente' => "TEXT DEFAULT 'Paciente'"
@@ -42,7 +70,7 @@ try {
         }
     }
 
-    // --- AUTO-SELO DE HARDWARE (MIGRAÇÃO PARA v5.8.1) ---
+    // 3. AUTO-SELO DE HARDWARE (MIGRAÇÃO DE SEGURANÇA)
     $lic = Database::fetch("SELECT * FROM licencas LIMIT 1");
     if ($lic && empty($lic['assinatura']) && class_exists('BTQueue\Core\SecurityService')) {
         $hwid = SecurityService::getHardwareId();
