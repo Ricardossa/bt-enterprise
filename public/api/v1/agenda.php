@@ -50,8 +50,7 @@ try {
 
         if (!$servicoId) throw new Exception("ID do serviço inválido.");
 
-        Database::begin();
-        // Remove regras antigas para reinserir
+        // Limpa regras antigas para este serviço de forma segura
         Database::execute("DELETE FROM agenda_regras WHERE servico_id = ?", [$servicoId]);
 
         foreach ($regras as $r) {
@@ -68,7 +67,7 @@ try {
                 ]
             );
         }
-        Database::commit();
+
         echo json_encode(['success' => true, 'message' => 'Regras salvas com sucesso!']);
         exit;
     }
@@ -97,7 +96,6 @@ try {
     echo json_encode(['success' => false, 'message' => 'Requisição inválida.']);
 
 } catch (Throwable $e) {
-    if (Database::getInstance()->inTransaction()) Database::rollback();
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
