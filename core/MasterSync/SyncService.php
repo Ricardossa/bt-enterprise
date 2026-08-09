@@ -58,7 +58,7 @@ final class SyncService
                 'uuid' => $uuid,
                 'token' => $token,
                 'produto' => 'BT_QUEUE_ENTERPRISE',
-                'versao' => Config::get('app.version', '4.0.0'),
+                'versao' => defined('BT_VERSION') ? BT_VERSION : '4.0.0',
                 'device_uuid' => gethostname(), // Identificador da VM/Máquina
                 'sync_queue' => $pendentes,
                 'device' => [
