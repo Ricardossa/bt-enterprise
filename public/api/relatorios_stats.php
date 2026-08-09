@@ -41,10 +41,12 @@ try {
         GROUP BY s.id
     ", $params);
 
-    // 3. Resumo Global
+    // 3. Resumo Global e Origem
     $resumo = Database::fetch("
         SELECT
             COUNT(*) as total_emitidas,
+            SUM(CASE WHEN cliente_uuid IN ('GOOGLE-CALENDAR', 'NATIVO') THEN 1 ELSE 0 END) as total_agendados,
+            SUM(CASE WHEN cliente_uuid NOT IN ('GOOGLE-CALENDAR', 'NATIVO') THEN 1 ELSE 0 END) as total_presencial,
             AVG(CAST((strftime('%s', chamada_em) - strftime('%s', emitida_em)) AS INT) / 60.0) as espera_global
         FROM senhas
         WHERE date(created_at) BETWEEN ? AND ?
@@ -68,6 +70,8 @@ try {
             'espera_servico' => $esperaPorServico ?: [],
             'resumo' => [
                 'total_emitidas' => (int)($resumo['total_emitidas'] ?? 0),
+                'total_agendados' => (int)($resumo['total_agendados'] ?? 0),
+                'total_presencial' => (int)($resumo['total_presencial'] ?? 0),
                 'espera_global' => (float)($resumo['espera_global'] ?? 0)
             ],
             'picos' => $movimentoHora ?: []

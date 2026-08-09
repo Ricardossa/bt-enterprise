@@ -44,6 +44,10 @@ include __DIR__ . '/includes/header.php';
         <div class="metric-card">
             <div class="metric-title"><i class="fa-solid fa-ticket"></i> Total Emitidas</div>
             <div class="big-number" id="total-emitidas">--</div>
+            <div style="margin-top:10px; font-size:12px; color:var(--text2); display:flex; justify-content:space-between;">
+                <span>🎟️ Totem: <b id="total-presencial" style="color:#fff">--</b></span>
+                <span>📅 Agenda: <b id="total-agendados" style="color:var(--warning)">--</b></span>
+            </div>
         </div>
         <div class="metric-card">
             <div class="metric-title"><i class="fa-solid fa-clock-rotate-left"></i> Espera Média</div>
@@ -147,6 +151,8 @@ async function carregarDados() {
 
         // Resumo
         document.getElementById('total-emitidas').innerText = d.resumo.total_emitidas || 0;
+        document.getElementById('total-presencial').innerText = d.resumo.total_presencial || 0;
+        document.getElementById('total-agendados').innerText = d.resumo.total_agendados || 0;
         document.getElementById('espera-global').innerHTML = `${Math.round(d.resumo.espera_global || 0)} <span class="unit">min</span>`;
 
         // Horário de Pico
