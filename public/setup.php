@@ -159,10 +159,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $licenseKey = strtoupper(bin2hex(random_bytes(6)));
 
-                // Tenta criar licença inicial no banco
+                // --- GERAÇÃO AUTOMÁTICA DE ESCUDO DIAMOND (v5.9.0) ---
+                $hwid = \BTQueue\Core\SecurityService::getHardwareId();
+                $sig = \BTQueue\Core\SecurityService::signData([
+                    'uuid' => $uuid,
+                    'status' => 'ATIVA',
+                    'validade' => date('Y-m-d', strtotime('+1 year'))
+                ], $token);
+
+                // Tenta criar licença inicial no banco já selada
                 Database::execute(
-                    "INSERT OR REPLACE INTO licencas (cliente_id, chave, uuid, token, status, validade) VALUES (?, ?, ?, ?, ?, date('now', '+1 year'))",
-                    [$clienteId, $licenseKey, $uuid, $token, 'ATIVA']
+                    "INSERT OR REPLACE INTO licencas (cliente_id, chave, uuid, token, status, validade, hardware_id, assinatura)
+                     VALUES (?, ?, ?, ?, 'ATIVA', date('now', '+1 year'), ?, ?)",
+                    [$clienteId, $licenseKey, $uuid, $token, $hwid, $sig]
                 );
 
                 $sync = new SyncService();
