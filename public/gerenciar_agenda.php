@@ -53,8 +53,6 @@ include __DIR__ . '/includes/header.php';
         </div>
     </div>
 
-    </div>
-
     <!-- MÓDULO DE COMPLIANCE E SUSPENSÕES (v6.3) -->
     <div class="agenda-manager-card" style="border-left: 4px solid var(--danger);">
         <div style="font-size: 14px; font-weight: bold; color: var(--danger); margin-bottom: 20px;">

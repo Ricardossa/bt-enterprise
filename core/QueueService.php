@@ -240,7 +240,7 @@ class QueueService
         try {
             Database::beginImmediate();
 
-            $senha = Database::fetch("SELECT * FROM senhas WHERE id = ? AND status = 'AGENDADO' LIMIT 1", [$id]);
+            $senha = Database::fetch("SELECT * FROM senhas WHERE id = ? AND status IN ('AGENDADO', 'PRESENTE') LIMIT 1", [$id]);
             if (!$senha) {
                 Database::rollback();
                 return ['success' => false, 'message' => 'Agendamento não encontrado ou já processado.'];
