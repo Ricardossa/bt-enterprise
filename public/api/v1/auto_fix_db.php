@@ -1,6 +1,6 @@
 <?php
 /**
- * BT Queue - Silent Auto-Fix Database (DIAMOND v6.1.0)
+ * BT Queue - Silent Auto-Fix Database (DIAMOND v6.4.2)
  * Garante colunas novas, tabelas de agenda e selo de hardware automático.
  */
 
@@ -55,7 +55,9 @@ try {
             'atendente_nome' => 'TEXT',
             'tipo_atendimento' => "TEXT DEFAULT 'NORMAL'",
             'data_agendamento' => 'DATETIME',
-            'emitida_em' => 'DATETIME'
+            'emitida_em' => 'DATETIME',
+            'whatsapp' => 'TEXT',
+            'cancel_token' => 'TEXT'
         ],
         'configuracoes' => [
             'label_cliente' => "TEXT DEFAULT 'Paciente'"
