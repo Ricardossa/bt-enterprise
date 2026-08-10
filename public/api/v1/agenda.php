@@ -33,16 +33,24 @@ try {
 
     // --- AÇÕES ADMINISTRATIVAS (REQUER LOGIN) ---
 
-    // 3. BUSCAR REGRAS DE UM SERVIÇO
+    // 3. BUSCAR REGRAS DE UM SERVIÇO + CONFIGURAÇÃO GLOBAL
     if ($method === 'GET' && $action === 'get_regras') {
         Auth::protegerAPI('ADMIN');
         $servicoId = (int)$_GET['servico_id'];
         $regras = Database::fetchAll("SELECT * FROM agenda_regras WHERE servico_id = ? ORDER BY dia_semana ASC", [$servicoId]);
-        echo json_encode(['success' => true, 'data' => $regras]);
+
+        // Busca também o horizonte global
+        $horizonte = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'agenda_horizonte' LIMIT 1");
+
+        echo json_encode([
+            'success' => true,
+            'data' => $regras,
+            'horizonte' => $horizonte ? (int)$horizonte['valor'] : 30
+        ]);
         exit;
     }
 
-    // 4. SALVAR REGRAS DE UM SERVIÇO
+    // 4. SALVAR REGRAS DE UM SERVIÇO + CONFIGURAÇÃO GLOBAL
     if ($method === 'POST' && $action === 'save_regras') {
         Auth::protegerAPI('ADMIN');
 
@@ -55,6 +63,7 @@ try {
 
         $servicoId = (int)($input['servico_id'] ?? 0);
         $regras = $input['regras'] ?? [];
+        $horizonte = (int)($input['horizonte'] ?? 30);
 
         if (!$servicoId) {
             http_response_code(400);
@@ -64,6 +73,12 @@ try {
 
         try {
             $db = Database::getInstance();
+
+            // 1. Atualiza Horizonte Global
+            Database::execute(
+                "INSERT OR REPLACE INTO configuracoes (chave, valor, tipo) VALUES ('agenda_horizonte', ?, 'NUMBER')",
+                [(string)$horizonte]
+            );
 
             // Inicia operação atômica de troca de regras
             Database::beginImmediate();

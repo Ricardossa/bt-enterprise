@@ -42,6 +42,17 @@ include __DIR__ . '/includes/header.php';
         </div>
     </div>
 
+    <div class="agenda-manager-card" style="border-left: 4px solid var(--secondary); margin-bottom: 25px;">
+        <div style="font-size: 14px; font-weight: bold; color: var(--secondary); margin-bottom: 20px;">
+            <i class="fa-solid fa-gears"></i> CONFIGURAÇÃO GLOBAL DA AGENDA
+        </div>
+        <div class="form-group" style="max-width: 400px;">
+            <label>Horizonte de Agendamento (Dias Futuros)</label>
+            <input type="number" id="agenda_horizonte" class="form-control" value="30" min="1" max="365">
+            <small style="color:var(--text2); font-size:11px;">Define quantos dias o cliente consegue ver no calendário.</small>
+        </div>
+    </div>
+
     <div class="agenda-manager-card">
         <div class="form-group" style="max-width: 400px; margin-bottom: 30px;">
             <label>Selecione o Serviço para Configurar</label>
@@ -93,6 +104,7 @@ include __DIR__ . '/includes/header.php';
 <script>
     const $dom = {
         select: document.getElementById('select-servico'),
+        agendaHorizonte: document.getElementById('agenda_horizonte'),
         container: document.getElementById('regras-container'),
         noSelection: document.getElementById('no-selection'),
         btnSalvar: document.getElementById('btnSalvar'),
@@ -110,7 +122,7 @@ include __DIR__ . '/includes/header.php';
         $dom.container.classList.remove('hidden');
         $dom.noSelection.classList.add('hidden');
 
-        // Carrega regras existentes
+        // Carrega regras existentes + horizonte global
         try {
             const res = await fetch(`api/v1/agenda.php?action=get_regras&servico_id=${id}`);
             const json = await res.json();
@@ -118,16 +130,20 @@ include __DIR__ . '/includes/header.php';
             // Reseta para o padrão antes de aplicar os dados do banco
             resetFields();
 
-            if (json.success && json.data.length > 0) {
-                json.data.forEach(regra => {
-                    const row = document.querySelector(`.day-row[data-dia="${regra.dia_semana}"]`);
-                    if (row) {
-                        row.querySelector('.start-time').value = regra.hora_inicio;
-                        row.querySelector('.end-time').value = regra.hora_fim;
-                        row.querySelector('.slot-duration').value = regra.duracao_slot;
-                        row.querySelector('.is-active').checked = parseInt(regra.ativo) === 1;
-                    }
-                });
+            if (json.success) {
+                if ($dom.agendaHorizonte) $dom.agendaHorizonte.value = json.horizonte || 30;
+
+                if (json.data && json.data.length > 0) {
+                    json.data.forEach(regra => {
+                        const row = document.querySelector(`.day-row[data-dia="${regra.dia_semana}"]`);
+                        if (row) {
+                            row.querySelector('.start-time').value = regra.hora_inicio;
+                            row.querySelector('.end-time').value = regra.hora_fim;
+                            row.querySelector('.slot-duration').value = regra.duracao_slot;
+                            row.querySelector('.is-active').checked = parseInt(regra.ativo) === 1;
+                        }
+                    });
+                }
             }
         } catch (e) { console.error(e); }
     };
@@ -159,11 +175,17 @@ include __DIR__ . '/includes/header.php';
         $dom.btnSalvar.disabled = true;
         $dom.btnSalvar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> SALVANDO...';
 
+        const rulesPayload = {
+            servico_id: servicoId,
+            regras: regras,
+            horizonte: $dom.agendaHorizonte ? $dom.agendaHorizonte.value : 30
+        };
+
         try {
             const res = await fetch('api/v1/agenda.php?action=save_regras', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ servico_id: servicoId, regras })
+                body: JSON.stringify(rulesPayload)
             });
 
             const json = await res.json();
