@@ -133,7 +133,7 @@ $logoExiste = file_exists(__DIR__ . '/uploads/logo.png');
 
             <p style="font-size: 11px; color: var(--text3); margin-top: 20px;">
                 Guarde seu código. Para cancelar, acesse: <br>
-                <b>brandaotech.com.br/cancelar.php</b>
+                <b id="display-cancel-url">...</b>
             </p>
 
             <button onclick="location.reload()" class="bt-button" style="margin-top: 20px; width: 100%; background: transparent; border: 1px solid var(--border);">NOVO AGENDAMENTO</button>
@@ -225,8 +225,11 @@ $logoExiste = file_exists(__DIR__ . '/uploads/logo.png');
                 document.getElementById('resumo-horario').innerText = json.horario;
                 document.getElementById('resumo-data').innerText = json.data;
 
+                const cancelUrl = window.location.origin + window.location.pathname.replace('agendar.php', 'cancelar.php');
+                document.getElementById('display-cancel-url').innerText = cancelUrl;
+
                 document.getElementById('btnZap').onclick = () => {
-                    const msg = `Olá! Acabei de agendar um horário na ${document.querySelector('h2').innerText}.\n\n📅 Data: ${json.data}\n🕒 Hora: ${json.horario}\n🔑 Código: ${json.token}\n\nPara cancelar: ${window.location.origin}/cancelar.php?t=${json.token}`;
+                    const msg = `Olá! Acabei de agendar um horário na ${document.querySelector('h2').innerText}.\n\n📅 Data: ${json.data}\n🕒 Hora: ${json.horario}\n🔑 Código: ${json.token}\n\nPara cancelar: ${cancelUrl}?t=${json.token}`;
                     window.open(`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`);
                 };
 

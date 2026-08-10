@@ -169,14 +169,14 @@ try {
 
         if (!$query) throw new Exception("Digite seu nome ou código.");
 
-        // Busca agendamento para HOJE que ainda não foi atendido
+        // Busca agendamento para HOJE que ainda não foi atendido (v6.4.3: Busca por Token, Nome ou UUID)
         $agendamento = Database::fetch(
             "SELECT * FROM senhas
              WHERE status = 'AGENDADO'
              AND date(data_agendamento) = ?
-             AND (nome_cliente LIKE ? OR uuid LIKE ?)
+             AND (cancel_token = ? OR nome_cliente LIKE ? OR uuid LIKE ?)
              LIMIT 1",
-            [$hoje, "%$query%", "$query%"]
+            [$hoje, $query, "%$query%", "$query%"]
         );
 
         if (!$agendamento) {
