@@ -86,6 +86,24 @@ $estaFechado = ($agora < $abertura || $agora > $fechamento);
                         <p style="color: var(--text2); margin-top: 15px;">Sincronizando...</p>
                     </div>
                 </div>
+
+                <!-- BOTÃO DE CHECK-IN MOBILE (v6.3) -->
+                <div id="area-checkin" style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 25px;">
+                    <div id="checkin-init">
+                        <button onclick="BT.emitter.showCheckin()" class="bt-button" style="width: 100%; background: rgba(255, 193, 7, 0.1); color: var(--warning); border: 1px solid var(--warning); padding: 15px; font-weight: bold; border-radius: 12px;">
+                            <i class="fa-solid fa-calendar-check"></i> JÁ TENHO AGENDAMENTO
+                        </button>
+                    </div>
+
+                    <div id="checkin-form" class="hidden animate__animated animate__fadeIn">
+                        <p style="color: var(--text2); font-size: 13px; margin-bottom: 15px;">Digite seu nome ou token para confirmar presença:</p>
+                        <input type="text" id="input-query" class="form-control" placeholder="Seu nome ou código..." style="margin-bottom: 15px; background: rgba(0,0,0,0.2); border-color: var(--border); color: #fff;">
+                        <div style="display:flex; gap: 10px;">
+                            <button onclick="BT.emitter.hideCheckin()" class="bt-button" style="flex:1; background: transparent; border: 1px solid var(--border);">CANCELAR</button>
+                            <button id="btn-do-checkin" onclick="BT.emitter.doCheckin()" class="bt-button bt-primary" style="flex:2;">CONFIRMAR CHEGADA</button>
+                        </div>
+                    </div>
+                </div>
             </section>
         <?php endif; ?>
     </main>

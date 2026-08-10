@@ -92,6 +92,52 @@ BT.emitter = {
                 alert("Erro: " + json.message);
             }
         } catch (e) { alert("Falha de conexão ao emitir senha."); }
+    },
+
+    // --- LÓGICA DE CHECK-IN MOBILE (v6.3 Diamond) ---
+    showCheckin() {
+        document.getElementById('checkin-init').classList.add('hidden');
+        document.getElementById('checkin-form').classList.remove('hidden');
+        document.getElementById('input-query').focus();
+    },
+
+    hideCheckin() {
+        document.getElementById('checkin-init').classList.remove('hidden');
+        document.getElementById('checkin-form').classList.add('hidden');
+    },
+
+    async doCheckin() {
+        const query = document.getElementById('input-query').value.trim();
+        if (!query) return alert("Por favor, digite seu nome ou token.");
+
+        const btn = document.getElementById('btn-do-checkin');
+        btn.disabled = true; btn.innerText = "PROCESSANDO...";
+
+        try {
+            const res = await fetch('../api/v1/agenda.php?action=checkin', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ query: query })
+            });
+            const json = await res.json();
+
+            if (json.success) {
+                // Adiciona a senha agendada ao pool local para acompanhamento
+                let tickets = JSON.parse(localStorage.getItem('bt_premium_tickets') || '[]');
+                tickets = tickets.filter(t => t.id !== json.data.id);
+                tickets.push(json.data);
+                localStorage.setItem('bt_premium_tickets', JSON.stringify(tickets));
+
+                // Redireciona para a tela de acompanhamento (Visão de Fila)
+                window.location.href = 'acompanhar.php?uuid=' + json.data.cliente_uuid;
+            } else {
+                alert(json.message || "Agendamento não encontrado para hoje.");
+                btn.disabled = false; btn.innerText = "CONFIRMAR CHEGADA";
+            }
+        } catch (e) {
+            alert("Falha de comunicação com o servidor.");
+            btn.disabled = false; btn.innerText = "CONFIRMAR CHEGADA";
+        }
     }
 };
 

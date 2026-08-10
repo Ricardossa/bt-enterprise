@@ -194,7 +194,10 @@ try {
             'success' => true,
             'message' => 'Check-in realizado com sucesso!',
             'data' => [
+                'id' => $agendamento['id'],
                 'codigo' => $agendamento['codigo'],
+                'uuid' => $agendamento['uuid'],
+                'cliente_uuid' => $agendamento['uuid'], // Alias para compatibilidade mobile
                 'nome_cliente' => $agendamento['nome_cliente'],
                 'hora' => date('H:i', strtotime($agendamento['data_agendamento']))
             ]
