@@ -67,7 +67,15 @@ $logoExiste = file_exists(__DIR__ . '/uploads/logo.png');
             <h3 style="font-size: 16px; margin: 0;">2. Escolha o Horário</h3>
         </div>
 
-        <input type="date" id="data-agenda" class="form-control" min="<?= date('Y-m-d') ?>" value="<?= date('Y-m-d') ?>">
+        <?php
+            $hoje = date('Y-m-d');
+            $horizonte = (int)($config['agenda_horizonte'] ?? 30);
+            $maxData = date('Y-m-d', strtotime("+$horizonte days"));
+        ?>
+        <input type="date" id="data-agenda" class="form-control"
+               min="<?= $hoje ?>"
+               max="<?= $maxData ?>"
+               value="<?= $hoje ?>">
 
         <div id="lista-slots" class="slot-grid">
             <!-- Injetado via JS -->

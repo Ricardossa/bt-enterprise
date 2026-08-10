@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const empresa = document.getElementById("empresa");
     const label_cliente = document.getElementById("label_cliente");
+    const agenda_horizonte = document.getElementById("agenda_horizonte");
     const logo = document.getElementById("logo");
     const botao = document.getElementById("btnSalvar");
     const preview = document.getElementById("empresaLogoPreview");
@@ -14,6 +15,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (json.success && json.data) {
             empresa.value = json.data.empresa || "";
             if (label_cliente) label_cliente.value = json.data.label_cliente || "Paciente";
+            if (agenda_horizonte) agenda_horizonte.value = json.data.agenda_horizonte || "30";
             if (preview) preview.src = BT.api.url('uploads/logo.png?v=' + Date.now());
         }
     } catch (e) {
@@ -24,13 +26,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     botao.addEventListener("click", async () => {
         try {
-            // 1. Salva Nome da Empresa e Rótulo
+            // 1. Salva Nome da Empresa, Rótulo e Horizonte
             const resposta = await fetch("api/configuracoes.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     empresa: empresa.value.trim(),
-                    label_cliente: label_cliente ? label_cliente.value.trim() : "Paciente"
+                    label_cliente: label_cliente ? label_cliente.value.trim() : "Paciente",
+                    agenda_horizonte: agenda_horizonte ? agenda_horizonte.value.trim() : "30"
                 })
             });
 

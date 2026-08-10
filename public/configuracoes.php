@@ -57,6 +57,12 @@ include __DIR__ . '/includes/header.php';
                     <small style="color:var(--text2); font-size:11px;">Este nome será usado no painel do operador e relatórios.</small>
                 </div>
 
+                <div class="form-group" style="margin-top:20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                    <label>Horizonte de Agendamento (Dias Futuros)</label>
+                    <input type="number" id="agenda_horizonte" class="form-control" placeholder="30" min="1" max="365">
+                    <small style="color:var(--text2); font-size:11px;">Quantos dias o cliente pode ver no calendário para marcar horário.</small>
+                </div>
+
                 <div class="form-group" style="margin-top:20px;">
                     <label>Logotipo Oficial (PNG/JPG)</label>
                     <div class="branding-box">
