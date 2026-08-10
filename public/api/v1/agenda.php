@@ -87,11 +87,16 @@ try {
             $stmtDel = $db->prepare("DELETE FROM agenda_regras WHERE servico_id = ?");
             $stmtDel->execute([$servicoId]);
 
-            // 2. Insere novas regras
-            $stmtIns = $db->prepare("INSERT INTO agenda_regras (servico_id, dia_semana, hora_inicio, hora_fim, duracao_slot, ativo) VALUES (?, ?, ?, ?, ?, ?)");
+            // 2. Insere novas regras (v6.1 Diamond Support)
+            $stmtIns = $db->prepare("INSERT INTO agenda_regras (
+                servico_id, dia_semana, hora_inicio, hora_fim, duracao_slot,
+                liberacao_dia_semana, liberacao_hora_inicio, liberacao_hora_fim, ativo
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             foreach ($regras as $r) {
                 if (!isset($r['dia_semana'])) continue;
+
+                $libDia = (isset($r['liberacao_dia']) && $r['liberacao_dia'] !== "") ? (int)$r['liberacao_dia'] : null;
 
                 $stmtIns->execute([
                     $servicoId,
@@ -99,6 +104,9 @@ try {
                     (string)($r['hora_inicio'] ?? '08:00'),
                     (string)($r['hora_fim'] ?? '18:00'),
                     (int)($r['duracao_slot'] ?? 30),
+                    $libDia,
+                    (string)($r['liberacao_inicio'] ?? '00:00'),
+                    (string)($r['liberacao_fim'] ?? '23:59'),
                     (int)($r['ativo'] ?? 0)
                 ]);
             }

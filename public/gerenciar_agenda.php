@@ -21,9 +21,9 @@ include __DIR__ . '/includes/header.php';
 
 <style>
     .agenda-manager-card { background: var(--card); border-radius: 15px; border: 1px solid var(--border); padding: 25px; margin-top: 20px; }
-    .day-row { display: grid; grid-template-columns: 150px 1fr 1fr 100px 80px; gap: 15px; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .day-row { display: grid; grid-template-columns: 150px 100px 100px 80px 150px 80px 60px; gap: 15px; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
     .day-name { font-weight: bold; color: var(--secondary); text-transform: uppercase; font-size: 13px; }
-    .form-label-small { font-size: 11px; color: var(--text2); display: block; margin-bottom: 5px; }
+    .lib-box { font-size: 11px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 5px; }
 </style>
 
 <main class="bt-main">
@@ -67,9 +67,10 @@ include __DIR__ . '/includes/header.php';
         <div id="regras-container" class="hidden">
             <div class="day-row" style="border-bottom: 2px solid var(--border); padding-bottom: 10px; opacity: 0.6;">
                 <div class="day-name">Dia da Semana</div>
-                <div>Horário Início</div>
-                <div>Horário Fim</div>
-                <div>Duração (min)</div>
+                <div>Início</div>
+                <div>Fim</div>
+                <div>Slot</div>
+                <div>Liberação (Opcional)</div>
                 <div>Ativo</div>
             </div>
 
@@ -78,17 +79,23 @@ include __DIR__ . '/includes/header.php';
             foreach ($dias as $index => $nome): ?>
                 <div class="day-row" data-dia="<?= $index ?>">
                     <div class="day-name"><?= $nome ?></div>
-                    <div>
-                        <input type="time" class="form-control start-time" value="08:00">
-                    </div>
-                    <div>
-                        <input type="time" class="form-control end-time" value="18:00">
-                    </div>
-                    <div>
-                        <input type="number" class="form-control slot-duration" value="30" min="5" max="240">
+                    <div><input type="time" class="form-control start-time" value="08:00"></div>
+                    <div><input type="time" class="form-control end-time" value="18:00"></div>
+                    <div><input type="number" class="form-control slot-duration" value="30"></div>
+                    <div class="lib-box">
+                        <select class="form-control lib-dia" style="font-size:10px; padding:2px;">
+                            <option value="">Sempre Aberto</option>
+                            <?php foreach ($dias as $idx => $n): ?>
+                                <option value="<?= $idx ?>">Só abre na <?= $n ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div style="display:flex; gap:2px; margin-top:5px;">
+                            <input type="time" class="form-control lib-inicio" value="00:00" style="font-size:9px; padding:2px;">
+                            <input type="time" class="form-control lib-fim" value="23:59" style="font-size:9px; padding:2px;">
+                        </div>
                     </div>
                     <div style="text-align:center;">
-                        <input type="checkbox" class="is-active" checked style="transform: scale(1.5);">
+                        <input type="checkbox" class="is-active" checked style="transform: scale(1.3);">
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -140,6 +147,9 @@ include __DIR__ . '/includes/header.php';
                             row.querySelector('.start-time').value = regra.hora_inicio;
                             row.querySelector('.end-time').value = regra.hora_fim;
                             row.querySelector('.slot-duration').value = regra.duracao_slot;
+                            row.querySelector('.lib-dia').value = regra.liberacao_dia_semana !== null ? regra.liberacao_dia_semana : "";
+                            row.querySelector('.lib-inicio').value = regra.liberacao_hora_inicio || "00:00";
+                            row.querySelector('.lib-fim').value = regra.liberacao_hora_fim || "23:59";
                             row.querySelector('.is-active').checked = parseInt(regra.ativo) === 1;
                         }
                     });
@@ -153,6 +163,9 @@ include __DIR__ . '/includes/header.php';
             row.querySelector('.start-time').value = "08:00";
             row.querySelector('.end-time').value = "18:00";
             row.querySelector('.slot-duration').value = "30";
+            row.querySelector('.lib-dia').value = "";
+            row.querySelector('.lib-inicio').value = "00:00";
+            row.querySelector('.lib-fim').value = "23:59";
             row.querySelector('.is-active').checked = false;
         });
     }
@@ -168,6 +181,9 @@ include __DIR__ . '/includes/header.php';
                 hora_inicio: row.querySelector('.start-time').value,
                 hora_fim: row.querySelector('.end-time').value,
                 duracao_slot: row.querySelector('.slot-duration').value,
+                liberacao_dia: row.querySelector('.lib-dia').value,
+                liberacao_inicio: row.querySelector('.lib-inicio').value,
+                liberacao_fim: row.querySelector('.lib-fim').value,
                 ativo: row.querySelector('.is-active').checked ? 1 : 0
             });
         });

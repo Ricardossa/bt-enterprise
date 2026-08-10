@@ -34,6 +34,18 @@ final class ScheduleService
 
         if (!$regra) return []; // Não atende ou está desativado neste dia
 
+        // --- TRAVA DE JANELA DE LIBERAÇÃO (v6.1 Diamond) ---
+        if ($regra['liberacao_dia_semana'] !== null) {
+            $hojeDiaSemana = (int)date('w');
+            $agoraHora = date('H:i');
+
+            // Se hoje não for o dia de abertura OU estiver fora da janela de horário
+            if ($hojeDiaSemana !== (int)$regra['liberacao_dia_semana'] ||
+                ($agoraHora < $regra['liberacao_hora_inicio'] || $agoraHora > $regra['liberacao_hora_fim'])) {
+                return []; // Esconde a data
+            }
+        }
+
         $inicio = $regra['hora_inicio'];
         $fim = $regra['hora_fim'];
         $duracao = (int)$regra['duracao_slot']; // em minutos
