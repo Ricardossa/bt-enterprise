@@ -211,7 +211,12 @@ $logoExiste = file_exists(__DIR__ . '/uploads/logo.png');
             const res = await fetch('api/v1/agenda.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ...state, nome_cliente: nome, whatsapp: whatsapp })
+                body: JSON.stringify({
+                    ...state,
+                    nome_cliente: nome,
+                    whatsapp: whatsapp,
+                    device_id: localStorage.getItem('bt_device_uuid') || ''
+                })
             });
             const json = await res.json();
 

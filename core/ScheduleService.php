@@ -85,9 +85,9 @@ final class ScheduleService
     }
 
     /**
-     * Realiza a reserva de um slot com regras de Compliance (v6.3).
+     * Realiza a reserva de um slot com regras de Compliance Triplo (v6.4).
      */
-    public function reservar(int $servicoId, string $nome, string $dataHora, string $whatsapp = ''): array
+    public function reservar(int $servicoId, string $nome, string $dataHora, string $whatsapp = '', string $deviceId = ''): array
     {
         try {
             Database::beginImmediate();
@@ -95,31 +95,39 @@ final class ScheduleService
             $hojeData = date('Y-m-d', strtotime($dataHora));
             $mesAno = date('Y-m', strtotime($dataHora));
 
-            // 1. VERIFICA SUSPENSÃO ATIVA
-            $suspensao = Database::fetch(
-                "SELECT * FROM agenda_suspensoes WHERE identificador = ? AND data_fim >= date('now') LIMIT 1",
-                [$nome]
-            );
+            // 1. VERIFICA SUSPENSÃO ATIVA (Cadeado Triplo: Nome, WhatsApp ou DeviceID)
+            $whatsappLimpo = preg_replace('/\D/', '', $whatsapp);
+
+            $sqlSusp = "SELECT * FROM agenda_suspensoes
+                        WHERE data_fim >= date('now')
+                        AND (
+                            identificador = ?
+                            OR (identificador = ? AND ? != '')
+                            OR (identificador = ? AND ? != '')
+                        ) LIMIT 1";
+
+            $suspensao = Database::fetch($sqlSusp, [$nome, $whatsappLimpo, $whatsappLimpo, $deviceId, $deviceId]);
+
             if ($suspensao) {
-                throw new Exception("Seu acesso está suspenso até " . date('d/m/Y', strtotime($suspensao['data_fim'])) . " por reincidência de faltas.");
+                throw new Exception("Seu acesso está suspenso até " . date('d/m/Y', strtotime($suspensao['data_fim'])) . " por descumprimento das regras de agendamento.");
             }
 
-            // 2. REGRA: APENAS 1 AGENDAMENTO POR DIA
+            // 2. REGRA: APENAS 1 AGENDAMENTO POR DIA (Checagem por Nome ou WhatsApp)
             $jaTemHoje = Database::fetch(
-                "SELECT id FROM senhas WHERE nome_cliente = ? AND date(data_agendamento) = ? AND status != 'CANCELADO' LIMIT 1",
-                [$nome, $hojeData]
+                "SELECT id FROM senhas WHERE (nome_cliente = ? OR (whatsapp = ? AND ? != '')) AND date(data_agendamento) = ? AND status != 'CANCELADO' LIMIT 1",
+                [$nome, $whatsappLimpo, $whatsappLimpo, $hojeData]
             );
             if ($jaTemHoje) {
-                throw new Exception("Você já possui um agendamento para este dia. É permitida apenas 1 vaga por fornecedor diariamente.");
+                throw new Exception("Limite diário: Você já possui um agendamento para este dia.");
             }
 
             // 3. REGRA: MÁXIMO 2 VEZES POR MÊS
             $mesContagem = Database::fetch(
                 "SELECT COUNT(*) as total FROM senhas
-                 WHERE nome_cliente = ?
+                 WHERE (nome_cliente = ? OR (whatsapp = ? AND ? != ''))
                  AND strftime('%Y-%m', data_agendamento) = ?
                  AND status != 'CANCELADO'",
-                [$nome, $mesAno]
+                [$nome, $whatsappLimpo, $whatsappLimpo, $mesAno]
             );
             if ((int)$mesContagem['total'] >= 2) {
                 throw new Exception("Limite mensal atingido. Só é permitida a marcação de horário 2 VEZES no mês por fornecedor.");

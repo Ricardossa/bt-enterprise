@@ -171,6 +171,59 @@ class QueueService
         }
     }
 
+    /**
+     * Chama uma senha específica pelo ID (Super-Poder Admin).
+     */
+    public function chamarEspecifico(int $id, int $guicheId, ?string $atendente = null): array
+    {
+        try {
+            Database::beginImmediate();
+
+            $senha = Database::fetch("SELECT * FROM senhas WHERE id = ? AND status IN ('AGUARDANDO', 'CONGELADA') LIMIT 1", [$id]);
+            if (!$senha) {
+                Database::rollback();
+                return ['success' => false, 'message' => 'Senha não encontrada ou já processada.'];
+            }
+
+            // 1. Muda para CHAMANDO
+            Database::execute(
+                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=CURRENT_TIMESTAMP WHERE id=?",
+                [$guicheId, $atendente, $id]
+            );
+
+            // 2. [CONGELAMENTO] - Se houver outras senhas do mesmo dispositivo, congela-as
+            if (!empty($senha['device_id'])) {
+                Database::execute(
+                    "UPDATE senhas SET status = 'CONGELADA' WHERE device_id = ? AND status = 'AGUARDANDO'",
+                    [$senha['device_id']]
+                );
+            }
+
+            $guicheInfo = Database::fetch("SELECT codigo FROM guiches WHERE id = ? LIMIT 1", [$guicheId]);
+            $guicheCodigoLogico = $guicheInfo ? $guicheInfo['codigo'] : (string)$guicheId;
+            $codigoExibir = $senha['codigo'] ?? ($senha['senha'] ?? '---');
+
+            Database::execute(
+                "INSERT INTO sync_queue (evento, entidade, referencia_id, payload, sincronizado) VALUES (?, ?, ?, ?, 0)",
+                ['CHAMAR', 'senha', $id, json_encode(['senha' => $codigoExibir, 'guiche' => $guicheCodigoLogico], JSON_UNESCAPED_UNICODE)]
+            );
+
+            ActivityService::log('SUCCESS', 'QUEUE', "[ADMIN] Senha $codigoExibir (Fura Fila) chamada no $guicheCodigoLogico", [], 'Administrador');
+
+            Database::commit();
+
+            return [
+                'success' => true,
+                'id' => $id,
+                'codigo' => $codigoExibir,
+                'guiche' => $guicheCodigoLogico
+            ];
+        } catch (Throwable $e) {
+            Database::rollback();
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
     public function finalizar(int $id): array
     {
         try {

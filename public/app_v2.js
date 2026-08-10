@@ -86,7 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     const opacity = isFrozen ? '0.6' : '1';
 
                     div.style.opacity = opacity;
-                    div.innerHTML = `<div><b>${senha.codigo}</b><br><small>${senha.servico_nome}</small></div><span class="badge ${badgeClass}">${badgeText}</span>`;
+                    div.innerHTML = `
+                        <div style="flex:1">
+                            <b>${senha.codigo}</b><br>
+                            <small>${senha.servico_nome}</small>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            ${window.BT_USER_NIVEL === 'ADMIN' ? `<button onclick="BT_OP.chamarFuraFila(${senha.id})" class="bt-button" style="padding:4px 8px; font-size:10px; background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2);">CHAMAR</button>` : ''}
+                            <span class="badge ${badgeClass}">${badgeText}</span>
+                        </div>
+                    `;
                     $dom.listaFila.appendChild(div);
                 });
             } else {
@@ -187,6 +196,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 atualizarPainel();
             } else {
                 alert(res.message);
+            }
+        },
+        chamarFuraFila: async (id) => {
+            const p = obterParametrosAtivos();
+            if (!p.guiche_id) return alert("Selecione seu guichê primeiro.");
+            if (!confirm("Deseja furar a fila e chamar esta senha agora?")) return;
+
+            const res = await fetch('api/chamar.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ senha_id: id, guiche_id: p.guiche_id })
+            });
+            const json = await res.json();
+
+            if (json.success) {
+                BT.toast.sucesso("Fura-fila ativado!");
+                atualizarPainel();
+            } else {
+                alert(json.message);
             }
         }
     };

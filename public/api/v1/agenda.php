@@ -213,13 +213,15 @@ try {
         $nome = strtoupper(trim((string)($input['nome_cliente'] ?? '')));
         $data = trim((string)($input['data'] ?? ''));
         $hora = trim((string)($input['hora'] ?? ''));
+        $whatsapp = trim((string)($input['whatsapp'] ?? ''));
+        $deviceId = trim((string)($input['device_id'] ?? ''));
 
         if (!$servicoId || !$nome || !$data || !$hora) {
             throw new Exception("Preencha todos os campos obrigatórios.");
         }
 
         $dataHora = "$data $hora:00";
-        $resultado = $service->reservar($servicoId, $nome, $dataHora);
+        $resultado = $service->reservar($servicoId, $nome, $dataHora, $whatsapp, $deviceId);
 
         echo json_encode($resultado);
         exit;

@@ -37,7 +37,18 @@ try {
         )
     ");
 
-    // 2. GARANTE COLUNAS NOVAS EM TABELAS EXISTENTES
+    // 2. GARANTE TABELA DE SUSPENSÕES (v6.4)
+    Database::execute("
+        CREATE TABLE IF NOT EXISTS agenda_suspensoes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            identificador TEXT NOT NULL UNIQUE,
+            motivo TEXT,
+            data_fim DATE NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    // 3. GARANTE COLUNAS NOVAS EM TABELAS EXISTENTES
     $migrations = [
         'senhas' => [
             'nome_cliente' => 'TEXT',

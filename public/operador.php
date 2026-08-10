@@ -99,6 +99,9 @@ include __DIR__ . '/includes/header.php';
 
 </main>
 
+<script>
+    window.BT_USER_NIVEL = '<?= $operadorLogado['nivel'] ?>';
+</script>
 <script src="assets/js/api.js?v=4.7"></script>
 <script src="assets/js/toast.js?v=4.7"></script>
 <script src="app_v2.js?v=5.8.0"></script>
