@@ -68,6 +68,29 @@ include __DIR__ . '/includes/header.php';
             </section>
 
             <section class="config-card">
+                <div class="config-section-title"><i class="fa-brands fa-whatsapp"></i> Notificações WhatsApp</div>
+                <p style="color:var(--text2); font-size:13px; margin-bottom:20px;">Integre sua API (Evolution, Z-API, etc) para enviar confirmações automáticas.</p>
+
+                <div class="form-group" style="margin-bottom:15px;">
+                    <label>Habilitar Notificações?</label>
+                    <select id="whatsapp_enabled" class="form-control">
+                        <option value="0">Não</option>
+                        <option value="1">Sim</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom:15px;">
+                    <label>URL da Instância / Gateway</label>
+                    <input type="text" id="whatsapp_api_url" class="form-control" placeholder="https://api.meuzap.com/message/sendText/instancia">
+                </div>
+
+                <div class="form-group">
+                    <label>Token de Acesso (apikey)</label>
+                    <input type="password" id="whatsapp_api_token" class="form-control" placeholder="Seu token de segurança">
+                </div>
+            </section>
+
+            <section class="config-card">
                 <div class="config-section-title"><i class="fa-solid fa-network-wired"></i> Conectividade e Live</div>
                 <p style="color:var(--text2); font-size:13px; margin-bottom:20px;">Configure como o sistema se comunica com os celulares e a Master.</p>
 

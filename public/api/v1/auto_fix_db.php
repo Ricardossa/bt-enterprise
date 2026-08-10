@@ -48,7 +48,21 @@ try {
         )
     ");
 
-    // 3. GARANTE COLUNAS NOVAS EM TABELAS EXISTENTES
+    // 3. GARANTE CONFIGURAÇÕES DE WHATSAPP (v6.6)
+    $waConfigs = [
+        ['whatsapp_enabled', '0', 'BOOLEAN', 'Habilita notificações automáticas via WhatsApp'],
+        ['whatsapp_api_url', '', 'STRING', 'URL da Instância da API (Ex: Evolution API)'],
+        ['whatsapp_api_token', '', 'STRING', 'Token de autenticação da API']
+    ];
+
+    foreach ($waConfigs as $c) {
+        Database::execute(
+            "INSERT OR IGNORE INTO configuracoes (chave, valor, tipo, descricao) VALUES (?, ?, ?, ?)",
+            $c
+        );
+    }
+
+    // 4. GARANTE COLUNAS NOVAS EM TABELAS EXISTENTES
     $migrations = [
         'senhas' => [
             'nome_cliente' => 'TEXT',

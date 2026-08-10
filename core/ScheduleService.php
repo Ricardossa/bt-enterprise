@@ -156,6 +156,19 @@ final class ScheduleService
 
             Database::commit();
 
+            // --- NOTIFICAÇÃO WHATSAPP AUTOMÁTICA (v6.6) ---
+            if (!empty($whatsapp)) {
+                $msg = "✅ AGENDAMENTO CONFIRMADO!\n\n" .
+                       "📍 Local: " . (Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'empresa' LIMIT 1")['valor'] ?? 'Brandão Tech') . "\n" .
+                       "👤 Nome: $nome\n" .
+                       "📅 Data: " . date('d/m/Y', strtotime($dataHora)) . "\n" .
+                       "🕒 Hora: " . date('H:i', strtotime($dataHora)) . "\n" .
+                       "🔑 Código: $cancelToken\n\n" .
+                       "Para cancelar, acesse o link enviado no momento da reserva.";
+
+                WhatsAppService::send($whatsapp, $msg);
+            }
+
             return [
                 'success' => true,
                 'token' => $cancelToken,
