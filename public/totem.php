@@ -30,19 +30,26 @@ include __DIR__ . '/includes/header.php';
 
 <style>
     body {
-        overflow: hidden;
+        overflow-y: auto;
         background-color: var(--bg);
         display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        height: 100vh;
+        min-height: 100vh;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE and Edge */
     }
+    body::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 
     .totem-container {
         width: 100%;
         max-width: 1200px;
-        padding: 40px;
+        padding: 60px 40px;
         text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex: 1;
     }
 
     .totem-header { margin-bottom: 60px; }
