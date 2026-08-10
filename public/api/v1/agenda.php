@@ -125,7 +125,48 @@ try {
         }
     }
 
-    // 5. REALIZAR RESERVA (PÚBLICO)
+    // 5. REALIZAR CHECK-IN (PÚBLICO NO TOTEM)
+    if ($method === 'POST' && $action === 'checkin') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $query = strtoupper(trim((string)($input['query'] ?? '')));
+        $hoje = date('Y-m-d');
+
+        if (!$query) throw new Exception("Digite seu nome ou código.");
+
+        // Busca agendamento para HOJE que ainda não foi atendido
+        $agendamento = Database::fetch(
+            "SELECT * FROM senhas
+             WHERE status = 'AGENDADO'
+             AND date(data_agendamento) = ?
+             AND (nome_cliente LIKE ? OR uuid LIKE ?)
+             LIMIT 1",
+            [$hoje, "%$query%", "$query%"]
+        );
+
+        if (!$agendamento) {
+            echo json_encode(['success' => false, 'message' => 'Agendamento não localizado para hoje.']);
+            exit;
+        }
+
+        // Marca como PRESENTE (Check-in realizado)
+        Database::execute(
+            "UPDATE senhas SET status = 'PRESENTE', updated_at = datetime('now', 'localtime') WHERE id = ?",
+            [$agendamento['id']]
+        );
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Check-in realizado com sucesso!',
+            'data' => [
+                'codigo' => $agendamento['codigo'],
+                'nome_cliente' => $agendamento['nome_cliente'],
+                'hora' => date('H:i', strtotime($agendamento['data_agendamento']))
+            ]
+        ]);
+        exit;
+    }
+
+    // 6. REALIZAR RESERVA (PÚBLICO)
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
 

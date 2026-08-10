@@ -216,7 +216,7 @@ class QueueService
             // [TIMEZONE SAFE] Usamos 'localtime' para bater com o horário de Brasília/Bahia
             $sql = "SELECT id, codigo, nome_cliente, data_agendamento, status
                     FROM senhas
-                    WHERE status = 'AGENDADO'
+                    WHERE status IN ('AGENDADO', 'PRESENTE')
                     AND data_agendamento > datetime('now', 'localtime', '-5 hours')
                     AND data_agendamento < datetime('now', 'localtime', '+18 hours') ";
 

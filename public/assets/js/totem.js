@@ -197,6 +197,59 @@ BT.totem = {
     fecharModal() {
         document.getElementById('modalSenhaTotem').style.display = 'none';
         this.resetIdleTimer();
+    },
+
+    // --- MÓDULO DE CHECK-IN NATIVO (v6.2 Diamond) ---
+    showCheckin() {
+        document.getElementById('inputCheckin').value = '';
+        document.getElementById('modalCheckin').style.display = 'flex';
+    },
+
+    hideCheckin() {
+        document.getElementById('modalCheckin').style.display = 'none';
+    },
+
+    key(k) {
+        const input = document.getElementById('inputCheckin');
+        if (k === 'BACK') input.value = input.value.slice(0, -1);
+        else if (k === 'CLEAR') input.value = '';
+        else if (k === 'SPACE') input.value += ' ';
+        else if (input.value.length < 20) input.value += k;
+    },
+
+    async doCheckin() {
+        const query = document.getElementById('inputCheckin').value.trim();
+        if (!query) return alert("Digite seu nome ou token.");
+
+        const btn = document.querySelector('#modalCheckin .bt-primary');
+        btn.disabled = true; btn.innerText = "VERIFICANDO...";
+
+        try {
+            const res = await fetch('api/v1/agenda.php?action=checkin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query })
+            });
+            const json = await res.json();
+
+            if (json.success) {
+                this.hideCheckin();
+                // Mostra a senha agendada no display de sucesso
+                this.mostrarSenha({
+                    senha: json.data.codigo,
+                    servico_nome: "CHECK-IN: " + json.data.nome_cliente
+                });
+                // Tenta imprimir o comprovante de chegada
+                this.dispararImpressao({
+                    senha: json.data.codigo,
+                    servico_nome: "AGENDADO: " + json.data.hora
+                });
+            } else {
+                alert(json.message || "Agendamento não encontrado para hoje.");
+            }
+        } catch (e) { alert("Erro ao realizar check-in."); }
+
+        btn.disabled = false; btn.innerText = "CONFIRMAR CHEGADA";
     }
 };
 

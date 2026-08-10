@@ -190,6 +190,42 @@ include __DIR__ . '/includes/header.php';
         <p style="color: var(--text2); font-size: 20px;">Sincronizando serviços...</p>
     </div>
 
+    <!-- BOTÃO DE CHECK-IN DIAMOND (v6.2) -->
+    <div style="margin-top: 50px;">
+        <button onclick="BT.totem.showCheckin()" class="totem-btn" style="height: 120px; width: 100%; max-width: 670px; margin: 0 auto; border-color: var(--warning); background: rgba(255, 193, 7, 0.05);">
+            <div style="display:flex; align-items:center; gap:20px;">
+                <span style="font-size: 40px; color: var(--warning);">📅</span>
+                <label style="color: var(--warning); font-size: 24px;">Já tenho agendamento</label>
+            </div>
+        </button>
+    </div>
+
+</div>
+
+<!-- MODAL DE CHECK-IN (TECLADO VIRTUAL) -->
+<div id="modalCheckin" class="modal-overlay">
+    <div class="modal-content-premium animate__animated animate__fadeInUp" style="max-width: 800px;">
+        <h2 style="color:#fff; font-weight:900;">CHECK-IN DE AGENDAMENTO</h2>
+        <p style="color:var(--text2);">Digite seu nome ou o token recebido</p>
+
+        <input type="text" id="inputCheckin" class="form-control" style="font-size: 40px; text-align: center; height: 100px; margin: 30px 0; background: var(--sidebar); border-radius: 20px; color: var(--warning); font-weight: bold;" readonly>
+
+        <!-- TECLADO SIMPLIFICADO -->
+        <div class="keyboard-grid" style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; margin-bottom: 30px;">
+            <?php
+                $keys = str_split("1234567890QWERTYUIOPASDFGHJKLZXCVBNM");
+                foreach($keys as $k) echo "<button onclick='BT.totem.key(\"$k\")' class='bt-button' style='padding:15px 0; font-weight:bold;'>$k</button>";
+            ?>
+            <button onclick="BT.totem.key('SPACE')" class="bt-button" style="grid-column: span 4; font-weight:bold;">ESPAÇO</button>
+            <button onclick="BT.totem.key('BACK')" class="bt-button" style="grid-column: span 3; background: var(--danger); font-weight:bold;">APAGAR</button>
+            <button onclick="BT.totem.key('CLEAR')" class="bt-button" style="grid-column: span 3; background: #333; font-weight:bold;">LIMPAR</button>
+        </div>
+
+        <div style="display:flex; gap:20px;">
+            <button onclick="BT.totem.hideCheckin()" class="bt-button" style="flex:1; padding:20px; background:#333; font-weight:bold;">CANCELAR</button>
+            <button onclick="BT.totem.doCheckin()" class="bt-button bt-primary" style="flex:2; padding:20px; font-weight:bold;">CONFIRMAR CHEGADA</button>
+        </div>
+    </div>
 </div>
 
 <!-- MODAL DE SENHA EMITIDA (LIMPO E RÁPIDO) -->

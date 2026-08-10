@@ -97,12 +97,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if ($dom.listaAgenda) {
                 $dom.listaAgenda.innerHTML = '';
 
-                // --- ALERTA DE NOVO AGENDAMENTO (DIAMOND v5.8.7) ---
-                if (dados.agendados && dados.agendados.length > agendadosAnteriores.length) {
-                    const nova = dados.agendados[dados.agendados.length - 1];
-                    BT.toast.aviso("📅 Novo Agendamento: " + nova.nome_cliente);
-                    notify("📅 Novo Agendamento", nova.nome_cliente);
-                    try { new Audio('assets/audio/alert.mp3').play(); } catch(e){}
+                // --- ALERTA DE NOVO AGENDAMENTO OU CHECK-IN (v6.2 Diamond) ---
+                if (dados.agendados && dados.agendados.length > 0) {
+                    dados.agendados.forEach((agd, idx) => {
+                        const antigo = agendadosAnteriores.find(a => a.id === agd.id);
+
+                        // 1. Novo agendamento detectado
+                        if (!antigo && agendadosAnteriores.length > 0) {
+                            BT.toast.aviso("📅 Novo Agendamento: " + agd.nome_cliente);
+                            notify("📅 Novo Agendamento", agd.nome_cliente);
+                            try { new Audio('assets/audio/alert.mp3').play(); } catch(e){}
+                        }
+
+                        // 2. Check-in realizado (Mudou de AGENDADO para PRESENTE)
+                        if (antigo && antigo.status === 'AGENDADO' && agd.status === 'PRESENTE') {
+                            BT.toast.sucesso("📍 CHEGADA: " + agd.nome_cliente);
+                            notify("📍 PACIENTE NA LOJA", agd.nome_cliente + " acaba de fazer check-in.");
+                            try { new Audio('assets/audio/checkin.mp3').play(); } catch(e){}
+                        }
+                    });
                 }
                 agendadosAnteriores = dados.agendados || [];
 
@@ -110,7 +123,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     dados.agendados.forEach(agd => {
                         const div = document.createElement('div');
                         div.className = 'op-next-item';
-                        div.style.borderLeft = '4px solid var(--warning)';
+
+                        // Visual diferenciado para quem já está na loja (v6.2)
+                        const isPresente = (agd.status === 'PRESENTE');
+                        const borderColor = isPresente ? 'var(--success)' : 'var(--warning)';
+                        const bgIcon = isPresente ? 'var(--success)' : 'var(--warning)';
+                        const pulseClass = isPresente ? 'animate__animated animate__pulse animate__infinite' : '';
+
+                        div.style.borderLeft = `4px solid ${borderColor}`;
+                        if (isPresente) div.style.background = 'rgba(24, 201, 100, 0.05)';
 
                         // Extrai apenas a hora do agendamento
                         const hora = agd.data_agendamento.split(' ')[1].substring(0, 5);
@@ -132,12 +153,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
 
                         div.innerHTML = `
-                            <div style="display:flex; align-items:center; gap:15px; width:100%;">
-                                <div style="background:var(--warning); color:#000; padding:5px 10px; border-radius:8px; font-weight:900; font-size:14px; min-width:60px; text-align:center;">
+                            <div style="display:flex; align-items:center; gap:15px; width:100%;" class="${pulseClass}">
+                                <div style="background:${bgIcon}; color:#000; padding:5px 10px; border-radius:8px; font-weight:900; font-size:14px; min-width:60px; text-align:center;">
                                     ${hora}
                                 </div>
                                 <div style="flex:1; text-align:left;">
-                                    <span style="font-size:10px; color:var(--text3); text-transform:uppercase; display:block;">${label}</span>
+                                    <span style="font-size:10px; color:var(--text2); text-transform:uppercase; display:block;">${isPresente ? '✅ NA UNIDADE' : label}</span>
                                     <b style="color:#fff; font-size:16px; text-transform:uppercase;">${nomeExibir}</b>
                                 </div>
                                 <button class="btn-chamar-agd" onclick="BT_OP.chamarAgendado(${agd.id})" style="background:rgba(255, 193, 7, 0.1); color:var(--warning); border:1px solid var(--warning); padding:8px 15px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer; transition:0.3s;">
