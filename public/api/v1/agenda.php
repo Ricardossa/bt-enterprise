@@ -125,6 +125,42 @@ try {
         }
     }
 
+    // --- MÓDULO DE SUSPENSÕES (ADMIN) ---
+
+    if ($method === 'GET' && $action === 'get_suspensoes') {
+        Auth::protegerAPI('ADMIN');
+        $lista = Database::fetchAll("SELECT * FROM agenda_suspensoes WHERE data_fim >= date('now') ORDER BY data_fim DESC");
+        echo json_encode(['success' => true, 'data' => $lista]);
+        exit;
+    }
+
+    if ($method === 'POST' && $action === 'add_suspensao') {
+        Auth::protegerAPI('ADMIN');
+        $input = json_decode(file_get_contents('php://input'), true);
+        $nome = strtoupper(trim((string)($input['nome'] ?? '')));
+        $dias = (int)($input['dias'] ?? 14);
+
+        if (!$nome) throw new Exception("Nome é obrigatório.");
+
+        $dataFim = date('Y-m-d', strtotime("+$dias days"));
+        Database::execute(
+            "INSERT OR REPLACE INTO agenda_suspensoes (identificador, motivo, data_fim) VALUES (?, 'Reincidência de faltas sem aviso prévio', ?)",
+            [$nome, $dataFim]
+        );
+
+        echo json_encode(['success' => true, 'message' => 'Fornecedor suspenso com sucesso!']);
+        exit;
+    }
+
+    if ($method === 'POST' && $action === 'remove_suspensao') {
+        Auth::protegerAPI('ADMIN');
+        $input = json_decode(file_get_contents('php://input'), true);
+        $id = (int)($input['id'] ?? 0);
+        Database::execute("DELETE FROM agenda_suspensoes WHERE id = ?", [$id]);
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
     // 5. REALIZAR CHECK-IN (PÚBLICO NO TOTEM)
     if ($method === 'POST' && $action === 'checkin') {
         $input = json_decode(file_get_contents('php://input'), true);

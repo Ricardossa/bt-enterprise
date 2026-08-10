@@ -53,6 +53,46 @@ include __DIR__ . '/includes/header.php';
         </div>
     </div>
 
+    </div>
+
+    <!-- MÓDULO DE COMPLIANCE E SUSPENSÕES (v6.3) -->
+    <div class="agenda-manager-card" style="border-left: 4px solid var(--danger);">
+        <div style="font-size: 14px; font-weight: bold; color: var(--danger); margin-bottom: 20px;">
+            <i class="fa-solid fa-user-slash"></i> CONTROLE DE PENALIDADES (COMPLIANCE)
+        </div>
+        <p style="color: var(--text2); font-size: 13px; margin-bottom: 20px;">Representantes que não comparecerem sem aviso podem ser suspensos aqui.</p>
+
+        <div style="display: flex; gap: 15px; margin-bottom: 25px; align-items: flex-end;">
+            <div style="flex: 2;">
+                <label class="form-label-small">Nome Completo do Fornecedor</label>
+                <input type="text" id="suspend-nome" class="form-control" placeholder="Digite o nome exatamente como no agendamento">
+            </div>
+            <div style="flex: 1;">
+                <label class="form-label-small">Dias de Suspensão</label>
+                <select id="suspend-dias" class="form-control">
+                    <option value="14">14 Dias</option>
+                    <option value="30">30 Dias</option>
+                    <option value="60">60 Dias</option>
+                </select>
+            </div>
+            <button onclick="addSuspension()" class="bt-button bt-danger" style="padding: 12px 20px;">SUSPENDER ACESSO</button>
+        </div>
+
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Fornecedor Suspenso</th>
+                    <th>Motivo</th>
+                    <th>Até Data</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="lista-suspensoes">
+                <!-- Injetado via JS -->
+            </tbody>
+        </table>
+    </div>
+
     <div class="agenda-manager-card">
         <div class="form-group" style="max-width: 400px; margin-bottom: 30px;">
             <label>Selecione o Serviço para Configurar</label>
@@ -219,6 +259,53 @@ include __DIR__ . '/includes/header.php';
         $dom.btnSalvar.disabled = false;
         $dom.btnSalvar.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> SALVAR CONFIGURAÇÃO';
     };
+
+    // --- FUNÇÕES DE SUSPENSÃO (v6.3) ---
+    async function loadSuspensions() {
+        const res = await fetch('api/v1/agenda.php?action=get_suspensoes');
+        const json = await res.json();
+        const body = document.getElementById('lista-suspensoes');
+        body.innerHTML = json.data.map(s => `
+            <tr>
+                <td><b>${s.identificador}</b></td>
+                <td><small>${s.motivo}</small></td>
+                <td>${new Date(s.data_fim).toLocaleDateString()}</td>
+                <td>
+                    <button onclick="removeSuspension(${s.id})" class="bt-button bt-danger" style="padding:5px 10px; font-size:10px;">LIBERAR</button>
+                </td>
+            </tr>
+        `).join('') || '<tr><td colspan="4" class="text-center">Nenhuma suspensão ativa.</td></tr>';
+    }
+
+    window.addSuspension = async () => {
+        const nome = document.getElementById('suspend-nome').value.trim();
+        const dias = document.getElementById('suspend-dias').value;
+        if (!nome) return alert("Digite o nome do fornecedor.");
+
+        const res = await fetch('api/v1/agenda.php?action=add_suspensao', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nome, dias })
+        });
+        const json = await res.json();
+        if (json.success) {
+            document.getElementById('suspend-nome').value = '';
+            loadSuspensions();
+            BT.toast.sucesso(json.message);
+        }
+    };
+
+    window.removeSuspension = async (id) => {
+        if (!confirm("Deseja realmente liberar este acesso?")) return;
+        await fetch('api/v1/agenda.php?action=remove_suspensao', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id })
+        });
+        loadSuspensions();
+    };
+
+    loadSuspensions();
 </script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

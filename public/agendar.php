@@ -52,6 +52,17 @@ $logoExiste = file_exists(__DIR__ . '/uploads/logo.png');
         <p style="color: var(--text2); font-size: 14px;">Reserve seu horário de atendimento</p>
     </header>
 
+    <!-- PAINEL DE REGRAS (v6.3 Compliance) -->
+    <div id="rules-box" style="text-align: left; background: rgba(255, 193, 7, 0.05); border: 1px solid var(--warning); padding: 15px; border-radius: 12px; margin-bottom: 25px; font-size: 12px;">
+        <b style="color: var(--warning); display: block; margin-bottom: 10px;"><i class="fa-solid fa-circle-info"></i> REGRAS IMPORTANTES:</b>
+        <ul style="padding-left: 20px; color: var(--text2); line-height: 1.6;">
+            <li>Tolerância de <b>10 minutos</b>.</li>
+            <li>Limite de <b>1 agendamento por dia</b> por representante.</li>
+            <li>Máximo de <b>2 agendamentos por mês</b>.</li>
+            <li>Não comparecer sem aviso prévio gera <b>suspensão</b> (14 a 60 dias).</li>
+        </ul>
+    </div>
+
     <!-- ETAPA 1: ESCOLHA DO SERVIÇO -->
     <div id="step-1">
         <h3 style="font-size: 16px; margin-bottom: 20px; text-align: left;">1. Qual serviço deseja?</h3>
@@ -104,18 +115,28 @@ $logoExiste = file_exists(__DIR__ . '/uploads/logo.png');
 
     <!-- SUCESSO -->
     <div id="step-success" class="hidden">
-        <div style="padding: 30px 0;">
+        <div style="padding: 10px 0;">
             <i class="fa-solid fa-circle-check" style="font-size: 60px; color: var(--success); margin-bottom: 20px;"></i>
             <h2 style="color: #fff;">Agendado!</h2>
             <p style="color: var(--text2); margin-top: 10px;">Seu horário foi reservado com sucesso.</p>
 
             <div style="background: var(--sidebar); padding: 20px; border-radius: 15px; margin-top: 25px; border: 1px solid var(--border);">
-                <span style="font-size: 12px; color: var(--text2); text-transform: uppercase;">Seu Horário</span>
-                <div id="resumo-horario" style="font-size: 24px; font-weight: bold; color: var(--warning); margin: 5px 0;">--:--</div>
-                <div id="resumo-data" style="font-size: 14px; color: #fff;">--/--/--</div>
+                <span style="font-size: 11px; color: var(--text2); text-transform: uppercase;">Código de Cancelamento</span>
+                <div id="resumo-token" style="font-size: 28px; font-weight: bold; color: var(--warning); margin: 5px 0; letter-spacing: 3px;">--------</div>
+                <div id="resumo-horario" style="font-size: 18px; font-weight: bold; color: #fff;">--:--</div>
+                <div id="resumo-data" style="font-size: 14px; color: var(--text2);">--/--/--</div>
             </div>
 
-            <button onclick="location.reload()" class="bt-button" style="margin-top: 30px; width: 100%;">NOVO AGENDAMENTO</button>
+            <button id="btnZap" class="bt-button" style="margin-top: 25px; width: 100%; background: #25D366; color: #000; font-weight: bold; border: none;">
+                <i class="fa-brands fa-whatsapp"></i> NOTIFICAR WHATSAPP
+            </button>
+
+            <p style="font-size: 11px; color: var(--text3); margin-top: 20px;">
+                Guarde seu código. Para cancelar, acesse: <br>
+                <b>brandaotech.com.br/cancelar.php</b>
+            </p>
+
+            <button onclick="location.reload()" class="bt-button" style="margin-top: 20px; width: 100%; background: transparent; border: 1px solid var(--border);">NOVO AGENDAMENTO</button>
         </div>
     </div>
 </div>
@@ -179,6 +200,7 @@ $logoExiste = file_exists(__DIR__ . '/uploads/logo.png');
 
     document.getElementById('btnConfirmar').onclick = async () => {
         const nome = document.getElementById('nome_cliente').value.trim();
+        const whatsapp = document.getElementById('whatsapp').value.trim();
         if (!nome) return alert("Por favor, informe seu nome.");
 
         const btn = document.getElementById('btnConfirmar');
@@ -189,14 +211,22 @@ $logoExiste = file_exists(__DIR__ . '/uploads/logo.png');
             const res = await fetch('api/v1/agenda.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ...state, nome_cliente: nome })
+                body: JSON.stringify({ ...state, nome_cliente: nome, whatsapp: whatsapp })
             });
             const json = await res.json();
 
             if (json.success) {
+                document.getElementById('resumo-token').innerText = json.token;
                 document.getElementById('resumo-horario').innerText = json.horario;
                 document.getElementById('resumo-data').innerText = json.data;
+
+                document.getElementById('btnZap').onclick = () => {
+                    const msg = `Olá! Acabei de agendar um horário na ${document.querySelector('h2').innerText}.\n\n📅 Data: ${json.data}\n🕒 Hora: ${json.horario}\n🔑 Código: ${json.token}\n\nPara cancelar: ${window.location.origin}/cancelar.php?t=${json.token}`;
+                    window.open(`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`);
+                };
+
                 nextStep('success');
+                document.getElementById('rules-box').classList.add('hidden');
             } else {
                 alert(json.message);
                 btn.disabled = false;

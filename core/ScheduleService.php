@@ -85,46 +85,96 @@ final class ScheduleService
     }
 
     /**
-     * Realiza a reserva de um slot.
+     * Realiza a reserva de um slot com regras de Compliance (v6.3).
      */
     public function reservar(int $servicoId, string $nome, string $dataHora, string $whatsapp = ''): array
     {
         try {
             Database::beginImmediate();
 
-            // Verifica novamente se o slot ainda está livre (concorrência)
+            $hojeData = date('Y-m-d', strtotime($dataHora));
+            $mesAno = date('Y-m', strtotime($dataHora));
+
+            // 1. VERIFICA SUSPENSÃO ATIVA
+            $suspensao = Database::fetch(
+                "SELECT * FROM agenda_suspensoes WHERE identificador = ? AND data_fim >= date('now') LIMIT 1",
+                [$nome]
+            );
+            if ($suspensao) {
+                throw new Exception("Seu acesso está suspenso até " . date('d/m/Y', strtotime($suspensao['data_fim'])) . " por reincidência de faltas.");
+            }
+
+            // 2. REGRA: APENAS 1 AGENDAMENTO POR DIA
+            $jaTemHoje = Database::fetch(
+                "SELECT id FROM senhas WHERE nome_cliente = ? AND date(data_agendamento) = ? AND status != 'CANCELADO' LIMIT 1",
+                [$nome, $hojeData]
+            );
+            if ($jaTemHoje) {
+                throw new Exception("Você já possui um agendamento para este dia. É permitida apenas 1 vaga por fornecedor diariamente.");
+            }
+
+            // 3. REGRA: MÁXIMO 2 VEZES POR MÊS
+            $mesContagem = Database::fetch(
+                "SELECT COUNT(*) as total FROM senhas
+                 WHERE nome_cliente = ?
+                 AND strftime('%Y-%m', data_agendamento) = ?
+                 AND status != 'CANCELADO'",
+                [$nome, $mesAno]
+            );
+            if ((int)$mesContagem['total'] >= 2) {
+                throw new Exception("Limite mensal atingido. Só é permitida a marcação de horário 2 VEZES no mês por fornecedor.");
+            }
+
+            // 4. VERIFICA DISPONIBILIDADE DO SLOT (CONCORRÊNCIA)
             $check = Database::fetch(
-                "SELECT id FROM senhas WHERE servico_id = ? AND data_agendamento = ? LIMIT 1",
+                "SELECT id FROM senhas WHERE servico_id = ? AND data_agendamento = ? AND status != 'CANCELADO' LIMIT 1",
                 [$servicoId, $dataHora]
             );
 
             if ($check) {
-                throw new Exception("Desculpe, este horário acabou de ser preenchido.");
+                throw new Exception("Desculpe, este horário acabou de ser preenchido por outro representante.");
             }
 
             $uuid = bin2hex(random_bytes(16));
-            $token = strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+            $cancelToken = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
 
             Database::execute(
                 "INSERT INTO senhas (
                     uuid, cliente_uuid, codigo, numero, prefixo,
-                    nome_cliente, status, data_agendamento, servico_id, created_at, emitida_em
-                ) VALUES (?, 'NATIVO', 'AGD', 0, 'G', ?, 'AGENDADO', ?, ?, datetime('now', 'localtime'), ?)",
-                [$uuid, $nome, $dataHora, $servicoId, $dataHora]
+                    nome_cliente, status, data_agendamento, servico_id, created_at, emitida_em, whatsapp, cancel_token
+                ) VALUES (?, 'NATIVO', 'AGD', 0, 'G', ?, 'AGENDADO', ?, ?, datetime('now', 'localtime'), ?, ?, ?)",
+                [$uuid, $nome, $dataHora, $servicoId, $dataHora, $whatsapp, $cancelToken]
             );
 
             Database::commit();
 
             return [
                 'success' => true,
-                'token' => $token,
+                'token' => $cancelToken,
                 'horario' => date('H:i', strtotime($dataHora)),
-                'data' => date('d/m/Y', strtotime($dataHora))
+                'data' => date('d/m/Y', strtotime($dataHora)),
+                'whatsapp' => $whatsapp
             ];
 
         } catch (Exception $e) {
             Database::rollback();
             return ['success' => false, 'message' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Cancela um agendamento via Token.
+     */
+    public function cancelar(string $token): array
+    {
+        $agendado = Database::fetch("SELECT * FROM senhas WHERE cancel_token = ? AND status = 'AGENDADO' LIMIT 1", [$token]);
+
+        if (!$agendado) {
+            return ['success' => false, 'message' => 'Agendamento não encontrado ou já processado.'];
+        }
+
+        Database::execute("UPDATE senhas SET status = 'CANCELADO', updated_at = datetime('now', 'localtime') WHERE id = ?", [$agendado['id']]);
+
+        return ['success' => true, 'message' => 'Agendamento cancelado com sucesso.'];
     }
 }
