@@ -51,6 +51,12 @@ final class SyncService
                 return ['success' => false, 'message' => 'Provisionamento ausente (UUID/Token).'];
             }
 
+            // --- RADAR DE COMPLIANCE DIAMOND (v6.5) ---
+            try {
+                $compliance = new \BTQueue\Core\ComplianceService();
+                $compliance->runRadar();
+            } catch (\Throwable $e) {}
+
             // 2. Prepara Pulse (Heartbeat + Fila Pendente)
             $pendentes = $this->queue->getPendingItems();
 
