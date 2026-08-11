@@ -11,7 +11,7 @@ Auth::protegerAPI();
 header('Content-Type: application/json; charset=utf-8');
 
 try {
-    $dados = json_decode(file_get_contents('php://input'), true);
+    $dados = json_decode(file_get_contents('php://input'), true) ?? $_POST;
     $id = isset($dados['id']) ? (int)$dados['id'] : 0;
 
     if ($id <= 0) {
@@ -24,10 +24,11 @@ try {
         throw new Exception("Senha não encontrada.");
     }
 
-    // [RECHAMAR] - Atualiza o timestamp (v6.8.4: Usando localtime para sincronia com a TV)
+    // [RECHAMAR] - Atualiza o timestamp (v6.8.5: Unificação de Relógio via PHP)
+    $agora = date('Y-m-d H:i:s');
     Database::execute(
-        "UPDATE senhas SET chamada_em = datetime('now', 'localtime') WHERE id = ?",
-        [$id]
+        "UPDATE senhas SET chamada_em = ? WHERE id = ?",
+        [$agora, $id]
     );
 
     // Resolve o código do guichê

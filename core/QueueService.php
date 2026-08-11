@@ -133,9 +133,10 @@ class QueueService
                 return ['success' => false, 'message' => 'Nenhuma senha elegível no momento.'];
             }
 
+            $agora = date('Y-m-d H:i:s');
             Database::execute(
-                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=datetime('now', 'localtime') WHERE id=?",
-                [$guicheIdFinal, $atendente, $senha['id']]
+                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=? WHERE id=?",
+                [$guicheIdFinal, $atendente, $agora, $senha['id']]
             );
 
             if (!empty($senha['device_id'])) {
@@ -186,9 +187,10 @@ class QueueService
             }
 
             // 1. Muda para CHAMANDO
+            $agora = date('Y-m-d H:i:s');
             Database::execute(
-                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=datetime('now', 'localtime') WHERE id=?",
-                [$guicheId, $atendente, $id]
+                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=? WHERE id=?",
+                [$guicheId, $atendente, $agora, $id]
             );
 
             // 2. [CONGELAMENTO] - Se houver outras senhas do mesmo dispositivo, congela-as
@@ -266,14 +268,14 @@ class QueueService
                 return [];
             }
 
-            // [TIMEZONE SAFE] Usamos 'localtime' para bater com o horário de Brasília/Bahia
+            // [TIMEZONE SAFE] Usamos o horário do PHP (date) para filtrar o banco
+            $hoje = date('Y-m-d');
             $sql = "SELECT id, codigo, nome_cliente, data_agendamento, status
                     FROM senhas
                     WHERE status IN ('AGENDADO', 'PRESENTE')
-                    AND data_agendamento > datetime('now', 'localtime', '-5 hours')
-                    AND data_agendamento < datetime('now', 'localtime', '+18 hours') ";
+                    AND date(data_agendamento) = ? ";
 
-            $params = [];
+            $params = [$hoje];
             if ($servicoId) {
                 $sql .= " AND servico_id = ? ";
                 $params[] = $servicoId;
@@ -309,9 +311,10 @@ class QueueService
             }
 
             // 1. Muda para CHAMANDO
+            $agora = date('Y-m-d H:i:s');
             Database::execute(
-                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=datetime('now', 'localtime') WHERE id=?",
-                [$guicheId, $atendente, $id]
+                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=? WHERE id=?",
+                [$guicheId, $atendente, $agora, $id]
             );
 
             // 2. [CONGELAMENTO]
