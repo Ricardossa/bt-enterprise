@@ -16,6 +16,10 @@ final class ComplianceService
      */
     public function runRadar(): void
     {
+        // --- MODO AMNESTY (v6.5.2) ---
+        // Radar pausado temporariamente para transição de sistema.
+        return;
+
         try {
             // Busca agendamentos expirados (15 min de tolerância)
             // Somente de hoje para evitar processar lixo antigo em massa
