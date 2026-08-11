@@ -13,7 +13,7 @@ use Exception;
 final class AIService
 {
     private string $ollamaUrl;
-    private string $model = 'llama3.2';
+    private string $model = 'llama3.2:latest';
 
     public function __construct()
     {
@@ -34,7 +34,7 @@ final class AIService
             $payload = json_encode([
                 'model' => $this->model,
                 'prompt' => $context . $prompt,
-                'stream' => false // Queremos a resposta completa de uma vez
+                'stream' => false
             ]);
 
             $ch = curl_init($this->ollamaUrl);
@@ -42,10 +42,14 @@ final class AIService
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 30); // O Xeon pode demorar um pouco mais que uma GPU
+
+            // Aumenta o tempo de espera para 120 segundos (Cura para Xeon v6.6.2)
+            curl_setopt($ch, CURLOPT_TIMEOUT, 120);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
             curl_close($ch);
 
             if ($httpCode !== 200) {
