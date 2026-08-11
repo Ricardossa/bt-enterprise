@@ -103,7 +103,16 @@ try {
         }
     }
 
-    // 3. AUTO-SELO DE HARDWARE (MIGRAÇÃO DE SEGURANÇA)
+    // 3. CURA DE TEMPO (v6.8.6: Remove horários do futuro que travam a TV)
+    Database::execute("
+        UPDATE senhas
+        SET chamada_em = datetime('now', 'localtime')
+        WHERE status IN ('CHAMANDO', 'FINALIZADA')
+        AND date(created_at) = date('now', 'localtime')
+        AND chamada_em > datetime('now', 'localtime', '+5 minutes')
+    ");
+
+    // 4. AUTO-SELO DE HARDWARE (MIGRAÇÃO DE SEGURANÇA)
     $lic = Database::fetch("SELECT * FROM licencas LIMIT 1");
     if ($lic && empty($lic['assinatura']) && class_exists('BTQueue\Core\SecurityService')) {
         $hwid = SecurityService::getHardwareId();
