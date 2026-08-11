@@ -51,6 +51,22 @@ include __DIR__ . '/includes/header.php';
             <input type="number" id="agenda_horizonte" class="form-control" value="30" min="1" max="365">
             <small style="color:var(--text2); font-size:11px;">Define quantos dias o cliente consegue ver no calendário.</small>
         </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); padding-top:20px;">
+            <div class="form-group">
+                <label>Radar de Faltas (Automático)</label>
+                <select id="radar_enabled" class="form-control">
+                    <option value="0">Desativado (Anistia)</option>
+                    <option value="1">Ativado (Vigilância)</option>
+                </select>
+                <small style="color:var(--text2); font-size:10px;">Marca como 'FALTOU' e suspende quem atrasar.</small>
+            </div>
+            <div class="form-group">
+                <label>Tolerância (Minutos)</label>
+                <input type="number" id="radar_tolerance" class="form-control" value="15" min="5" max="120">
+                <small style="color:var(--text2); font-size:10px;">Tempo antes de aplicar a falta automática.</small>
+            </div>
+        </div>
     </div>
 
     <!-- MÓDULO DE COMPLIANCE E SUSPENSÕES (v6.3) -->
@@ -150,6 +166,8 @@ include __DIR__ . '/includes/header.php';
     const $dom = {
         select: document.getElementById('select-servico'),
         agendaHorizonte: document.getElementById('agenda_horizonte'),
+        radarEnabled: document.getElementById('radar_enabled'),
+        radarTolerance: document.getElementById('radar_tolerance'),
         container: document.getElementById('regras-container'),
         noSelection: document.getElementById('no-selection'),
         btnSalvar: document.getElementById('btnSalvar'),
@@ -177,6 +195,8 @@ include __DIR__ . '/includes/header.php';
 
             if (json.success) {
                 if ($dom.agendaHorizonte) $dom.agendaHorizonte.value = json.horizonte || 30;
+                if ($dom.radarEnabled) $dom.radarEnabled.value = json.radar_enabled || "0";
+                if ($dom.radarTolerance) $dom.radarTolerance.value = json.radar_tolerance || "15";
 
                 if (json.data && json.data.length > 0) {
                     json.data.forEach(regra => {
@@ -232,7 +252,9 @@ include __DIR__ . '/includes/header.php';
         const rulesPayload = {
             servico_id: servicoId,
             regras: regras,
-            horizonte: $dom.agendaHorizonte ? $dom.agendaHorizonte.value : 30
+            horizonte: $dom.agendaHorizonte ? $dom.agendaHorizonte.value : 30,
+            radar_enabled: $dom.radarEnabled ? $dom.radarEnabled.value : "0",
+            radar_tolerance: $dom.radarTolerance ? $dom.radarTolerance.value : "15"
         };
 
         try {

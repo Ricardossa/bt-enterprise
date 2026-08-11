@@ -16,17 +16,23 @@ final class ComplianceService
      */
     public function runRadar(): void
     {
-        // --- MODO AMNESTY (v6.5.2) ---
-        // Radar pausado temporariamente para transição de sistema.
-        return;
-
         try {
-            // Busca agendamentos expirados (15 min de tolerância)
-            // Somente de hoje para evitar processar lixo antigo em massa
+            $configs = Database::fetchAll("SELECT chave, valor FROM configuracoes WHERE chave LIKE 'radar_%'");
+            $cfg = [];
+            foreach ($configs as $c) { $cfg[$c['chave']] = $c['valor']; }
+
+            // Se o radar estiver desligado, não faz nada (v6.9.0)
+            if (($cfg['radar_enabled'] ?? '0') !== '1') {
+                return;
+            }
+
+            $tolerancia = (int)($cfg['radar_tolerance'] ?? 15);
+
+            // Busca agendamentos expirados
             $expirados = Database::fetchAll(
                 "SELECT * FROM senhas
                  WHERE status = 'AGENDADO'
-                 AND data_agendamento < datetime('now', 'localtime', '-15 minutes')
+                 AND data_agendamento < datetime('now', 'localtime', '-$tolerancia minutes')
                  AND date(data_agendamento) = date('now', 'localtime')"
             );
 

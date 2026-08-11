@@ -53,7 +53,9 @@ try {
         ['whatsapp_enabled', '0', 'BOOLEAN', 'Habilita notificações automáticas via WhatsApp'],
         ['whatsapp_api_url', '', 'STRING', 'URL da Instância da API (Ex: Evolution API)'],
         ['whatsapp_api_token', '', 'STRING', 'Token de autenticação da API'],
-        ['ai_url', 'http://192.168.100.250:11434/api/generate', 'STRING', 'URL do motor de Inteligência Artificial (Ollama)']
+        ['ai_url', 'http://192.168.100.250:11434/api/generate', 'STRING', 'URL do motor de Inteligência Artificial (Ollama)'],
+        ['radar_enabled', '0', 'BOOLEAN', 'Habilita o radar de faltas automáticas'],
+        ['radar_tolerance', '15', 'NUMBER', 'Minutos de tolerância para falta automática']
     ];
 
     foreach ($waConfigs as $c) {

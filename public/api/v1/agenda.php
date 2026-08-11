@@ -39,13 +39,17 @@ try {
         $servicoId = (int)$_GET['servico_id'];
         $regras = Database::fetchAll("SELECT * FROM agenda_regras WHERE servico_id = ? ORDER BY dia_semana ASC", [$servicoId]);
 
-        // Busca também o horizonte global
+        // Busca também o horizonte global e radar (v6.9)
         $horizonte = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'agenda_horizonte' LIMIT 1");
+        $radarEnabled = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'radar_enabled' LIMIT 1");
+        $radarTolerance = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'radar_tolerance' LIMIT 1");
 
         echo json_encode([
             'success' => true,
             'data' => $regras,
-            'horizonte' => $horizonte ? (int)$horizonte['valor'] : 30
+            'horizonte' => $horizonte ? (int)$horizonte['valor'] : 30,
+            'radar_enabled' => $radarEnabled ? $radarEnabled['valor'] : "0",
+            'radar_tolerance' => $radarTolerance ? $radarTolerance['valor'] : "15"
         ]);
         exit;
     }
@@ -64,6 +68,8 @@ try {
         $servicoId = (int)($input['servico_id'] ?? 0);
         $regras = $input['regras'] ?? [];
         $horizonte = (int)($input['horizonte'] ?? 30);
+        $radarEnabled = (string)($input['radar_enabled'] ?? "0");
+        $radarTolerance = (string)($input['radar_tolerance'] ?? "15");
 
         if (!$servicoId) {
             http_response_code(400);
@@ -74,11 +80,10 @@ try {
         try {
             $db = Database::getInstance();
 
-            // 1. Atualiza Horizonte Global
-            Database::execute(
-                "INSERT OR REPLACE INTO configuracoes (chave, valor, tipo) VALUES ('agenda_horizonte', ?, 'NUMBER')",
-                [(string)$horizonte]
-            );
+            // 1. Atualiza Configurações Globais (v6.9)
+            Database::execute("INSERT OR REPLACE INTO configuracoes (chave, valor, tipo) VALUES ('agenda_horizonte', ?, 'NUMBER')", [(string)$horizonte]);
+            Database::execute("INSERT OR REPLACE INTO configuracoes (chave, valor, tipo) VALUES ('radar_enabled', ?, 'BOOLEAN')", [$radarEnabled]);
+            Database::execute("INSERT OR REPLACE INTO configuracoes (chave, valor, tipo) VALUES ('radar_tolerance', ?, 'NUMBER')", [$radarTolerance]);
 
             // Inicia operação atômica de troca de regras
             Database::beginImmediate();
