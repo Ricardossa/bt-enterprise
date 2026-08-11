@@ -134,7 +134,7 @@ class QueueService
             }
 
             Database::execute(
-                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=CURRENT_TIMESTAMP WHERE id=?",
+                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=datetime('now', 'localtime') WHERE id=?",
                 [$guicheIdFinal, $atendente, $senha['id']]
             );
 
@@ -187,7 +187,7 @@ class QueueService
 
             // 1. Muda para CHAMANDO
             Database::execute(
-                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=CURRENT_TIMESTAMP WHERE id=?",
+                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=datetime('now', 'localtime') WHERE id=?",
                 [$guicheId, $atendente, $id]
             );
 
@@ -310,7 +310,7 @@ class QueueService
 
             // 1. Muda para CHAMANDO
             Database::execute(
-                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=CURRENT_TIMESTAMP WHERE id=?",
+                "UPDATE senhas SET status='CHAMANDO', guiche_id=?, atendente=?, chamada_em=datetime('now', 'localtime') WHERE id=?",
                 [$guicheId, $atendente, $id]
             );
 

@@ -52,7 +52,7 @@ try {
              FROM senhas s
              LEFT JOIN guiches g ON g.id = s.guiche_id
              WHERE s.status IN ('CHAMANDO', 'FINALIZADA')
-             ORDER BY s.id DESC
+             ORDER BY s.chamada_em DESC, s.id DESC
              LIMIT 5"
         );
 
