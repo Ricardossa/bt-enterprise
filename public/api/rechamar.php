@@ -24,9 +24,9 @@ try {
         throw new Exception("Senha não encontrada.");
     }
 
-    // [RECHAMAR] - Atualiza o timestamp para a TV perceber como um novo evento
+    // [RECHAMAR] - Atualiza o timestamp (v6.8.4: Usando localtime para sincronia com a TV)
     Database::execute(
-        "UPDATE senhas SET chamada_em = CURRENT_TIMESTAMP WHERE id = ?",
+        "UPDATE senhas SET chamada_em = datetime('now', 'localtime') WHERE id = ?",
         [$id]
     );
 
