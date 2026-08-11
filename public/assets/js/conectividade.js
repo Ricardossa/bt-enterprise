@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
         modo_lan: document.getElementById("modo_lan"),
         modo_cloud: document.getElementById("modo_cloud"),
         local_print_ip: document.getElementById("local_print_ip"),
+        ai_url: document.getElementById("ai_url"),
         opening_time: document.getElementById("opening_time"),
         closing_time: document.getElementById("closing_time")
     };
@@ -76,6 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (cfg.instagram) campos.instagram.value = cfg.instagram;
             if (cfg.slogan) campos.slogan.value = cfg.slogan;
             if (cfg.local_print_ip) campos.local_print_ip.value = cfg.local_print_ip;
+            if (cfg.ai_url) campos.ai_url.value = cfg.ai_url;
             if (cfg.opening_time) campos.opening_time.value = cfg.opening_time;
             if (cfg.closing_time) campos.closing_time.value = cfg.closing_time;
 
@@ -100,6 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
             instagram: campos.instagram.value.trim(),
             slogan: campos.slogan.value.trim(),
             local_print_ip: campos.local_print_ip.value.trim(),
+            ai_url: campos.ai_url.value.trim(),
             opening_time: campos.opening_time.value,
             closing_time: campos.closing_time.value
         };

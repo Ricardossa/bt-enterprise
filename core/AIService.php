@@ -17,8 +17,9 @@ final class AIService
 
     public function __construct()
     {
-        // IP Real do seu TrueNAS Xeon (v6.6.1 Fix)
-        $this->ollamaUrl = 'http://192.168.100.250:11434/api/generate';
+        // Busca a URL da IA configurada no banco (v6.7.1 dynamic)
+        $config = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'ai_url' LIMIT 1");
+        $this->ollamaUrl = $config ? $config['valor'] : 'http://192.168.100.250:11434/api/generate';
     }
 
     /**

@@ -55,6 +55,12 @@ include __DIR__ . '/includes/header.php';
                 </div>
 
                 <div class="form-group" style="margin-top:20px; border-top: 1px solid var(--border); padding-top: 15px;">
+                    <label style="color:var(--secondary); font-size:12px;">🧠 ENDEREÇO DO CÉREBRO AI (Ollama)</label>
+                    <input type="text" id="ai_url" class="form-control" placeholder="http://192.168.100.250:11434/api/generate">
+                    <small style="color:var(--text2); font-size:10px;">Aponte para o seu Servidor Xeon (Local ou Público).</small>
+                </div>
+
+                <div class="form-group" style="margin-top:20px; border-top: 1px solid var(--border); padding-top: 15px;">
                     <label style="color:var(--secondary); font-size:12px;">🖨️ IP DA IMPRESSORA LOCAL (Para Nuvem)</label>
                     <div style="display:flex; gap:10px; margin-top:5px;">
                         <input type="text" id="local_print_ip" class="form-control" placeholder="Ex: 192.168.1.50" style="flex:1;">
