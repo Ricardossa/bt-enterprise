@@ -96,6 +96,30 @@ include __DIR__ . '/includes/header.php';
 
     </div>
 
+    <!-- 🧠 BT DIAMOND AI INSIGHTS (v6.7) -->
+    <section class="metric-card" style="margin-top: 25px; border-left: 4px solid var(--secondary); background: rgba(29, 180, 255, 0.02);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <div class="metric-title" style="margin-bottom:0;"><i class="fa-solid fa-brain"></i> Análise de Inteligência Artificial</div>
+            <button id="btnSolicitarAI" class="bt-button bt-primary" style="font-size:11px; padding:8px 15px;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> SOLICITAR INSIGHT AGORA
+            </button>
+        </div>
+
+        <div id="ai-response-box" class="hidden animate__animated animate__fadeIn">
+            <div style="background: var(--sidebar); border: 1px solid var(--border); border-radius: 12px; padding: 20px; color: #fff; line-height: 1.6; font-size: 14px; white-space: pre-wrap;">
+                <div id="ai-content"></div>
+                <div style="margin-top:15px; font-size:10px; color:var(--text3); border-top:1px solid rgba(255,255,255,0.05); padding-top:10px; text-align:right;">
+                    <i class="fa-solid fa-microchip"></i> Processado localmente pelo cérebro Xeon Diamond.
+                </div>
+            </div>
+        </div>
+
+        <div id="ai-loading" class="hidden" style="padding: 40px; text-align: center;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 30px; color: var(--secondary);"></i>
+            <p style="color:var(--text2); margin-top:15px;">O cérebro da unidade está analisando seus dados de hoje...</p>
+        </div>
+    </section>
+
 </main>
 
 <script>
@@ -184,6 +208,34 @@ async function carregarDados() {
 
     } catch (e) { console.error(e); }
 }
+
+document.getElementById('btnSolicitarAI').onclick = async () => {
+    const btn = document.getElementById('btnSolicitarAI');
+    const loading = document.getElementById('ai-loading');
+    const box = document.getElementById('ai-response-box');
+    const content = document.getElementById('ai-content');
+
+    btn.disabled = true;
+    loading.classList.remove('hidden');
+    box.classList.add('hidden');
+
+    try {
+        const res = await fetch('api/ai_insight.php');
+        const json = await res.json();
+
+        if (json.success) {
+            content.innerText = json.analise;
+            box.classList.remove('hidden');
+        } else {
+            alert(json.message || "O cérebro está ocupado no momento.");
+        }
+    } catch (e) {
+        alert("Falha na comunicação com o motor de inteligência.");
+    } finally {
+        loading.classList.add('hidden');
+        btn.disabled = false;
+    }
+};
 
 document.addEventListener('DOMContentLoaded', carregarDados);
 </script>
