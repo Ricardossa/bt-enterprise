@@ -187,24 +187,43 @@ include __DIR__ . '/includes/header.php';
 
 <div class="totem-container animate__animated animate__zoomIn">
     
-    <header class="totem-header">
-        <img src="uploads/logo.png" onerror="this.src='http://api.brandaotech.com.br:8080/uploads/logo/logo.png'">
-        <h1>SISTEMA DE SENHAS</h1>
-        <p>Toque no serviço desejado para retirar sua senha</p>
-    </header>
+    <!-- ETAPA 1: SELEÇÃO DE SERVIÇO -->
+    <div id="step-services">
+        <header class="totem-header">
+            <img src="uploads/logo.png" onerror="this.src='http://api.brandaotech.com.br:8080/uploads/logo/logo.png'">
+            <h1>SISTEMA DE SENHAS</h1>
+            <p>Toque no serviço desejado para retirar sua senha</p>
+        </header>
 
-    <div id="containerServicos" class="totem-grid">
-        <p style="color: var(--text2); font-size: 20px;">Sincronizando serviços...</p>
+        <div id="containerServicos" class="totem-grid">
+            <p style="color: var(--text2); font-size: 20px;">Sincronizando serviços...</p>
+        </div>
+
+        <!-- BOTÃO DE CHECK-IN DIAMOND (v6.2) -->
+        <div style="margin-top: 50px;">
+            <button onclick="BT.totem.showCheckin()" class="totem-btn" style="height: 120px; width: 100%; max-width: 670px; margin: 0 auto; border-color: var(--warning); background: rgba(255, 193, 7, 0.05);">
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <span style="font-size: 40px; color: var(--warning);">📅</span>
+                    <label style="color: var(--warning); font-size: 24px;">Já tenho agendamento</label>
+                </div>
+            </button>
+        </div>
     </div>
 
-    <!-- BOTÃO DE CHECK-IN DIAMOND (v6.2) -->
-    <div style="margin-top: 50px;">
-        <button onclick="BT.totem.showCheckin()" class="totem-btn" style="height: 120px; width: 100%; max-width: 670px; margin: 0 auto; border-color: var(--warning); background: rgba(255, 193, 7, 0.05);">
-            <div style="display:flex; align-items:center; gap:20px;">
-                <span style="font-size: 40px; color: var(--warning);">📅</span>
-                <label style="color: var(--warning); font-size: 24px;">Já tenho agendamento</label>
+    <!-- ETAPA 2: ESCOLHA DE PRIORIDADE (v7.0) -->
+    <div id="step-priority" class="hidden" style="width:100%; max-width:800px; margin: 40px auto; padding: 40px;">
+        <h2 style="font-size:42px; font-weight:900; margin-bottom:40px;">ESCOLHA O TIPO DE SENHA</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px;">
+            <div class="totem-btn" style="height:350px; border-color:var(--primary);" onclick="BT.totem.emitirSenha('NORMAL')">
+                <span style="font-size:100px;">📋</span>
+                <label style="font-size:32px;">ATENDIMENTO NORMAL</label>
             </div>
-        </button>
+            <div class="totem-btn" style="height:350px; border-color:#f5a524;" onclick="BT.totem.emitirSenha('PRIORITARIO')">
+                <span style="font-size:100px;">♿</span>
+                <label style="font-size:32px;">PRIORITÁRIO (LEI 10.048)</label>
+            </div>
+        </div>
+        <button onclick="BT.totem.backToServices()" class="bt-button" style="margin-top:50px; width:100%; padding:20px; font-size:24px; background:transparent; border:2px solid var(--border);">VOLTAR</button>
     </div>
 
 </div>

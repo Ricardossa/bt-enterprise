@@ -32,13 +32,49 @@ BT.totem = {
             const json = await res.json();
             if (json.success) {
                 container.innerHTML = json.data.map(s => `
-                    <div class="totem-btn" style="border-color: ${s.cor || 'var(--border)'};" onclick="BT.totem.emitirSenha(${s.id})">
+                    <div class="totem-btn" style="border-color: ${s.cor || 'var(--border)'};" onclick="BT.totem.selectService(${s.id})">
                         <span>${s.icone || '📋'}</span>
                         <label>${s.nome}</label>
                     </div>
                 `).join('');
             }
         } catch (e) { container.innerHTML = 'Erro ao carregar serviços.'; }
+    },
+
+    // --- MÓDULO DE PRIORIDADE (v7.0) ---
+    selectedServiceId: null,
+
+    selectService(id) {
+        this.selectedServiceId = id;
+        document.getElementById('step-services').classList.add('hidden');
+        document.getElementById('step-priority').classList.remove('hidden');
+    },
+
+    backToServices() {
+        this.selectedServiceId = null;
+        document.getElementById('step-priority').classList.add('hidden');
+        document.getElementById('step-services').classList.remove('hidden');
+    },
+
+    async emitirSenha(tipo = 'NORMAL') {
+        const id = this.selectedServiceId;
+        if (!id) return;
+
+        try {
+            const res = await fetch(this.apiSenhas, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ servico_id: parseInt(id), tipo: tipo })
+            });
+            const json = await res.json();
+            if (json.success) {
+                this.backToServices();
+                this.mostrarSenha(json.data);
+                this.dispararImpressao(json.data);
+            } else {
+                alert(json.message);
+            }
+        } catch (e) { alert('Falha ao emitir senha.'); }
     },
 
     configurarModoHibrido() {
@@ -127,20 +163,7 @@ BT.totem = {
     },
 
     async emitirSenha(servicoId) {
-        try {
-            const res = await fetch(this.apiSenhas, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ servico_id: parseInt(servicoId) })
-            });
-            const json = await res.json();
-            if (json.success) {
-                this.mostrarSenha(json.data);
-                this.dispararImpressao(json.data);
-            } else {
-                alert(json.message);
-            }
-        } catch (e) { alert('Falha ao emitir senha.'); }
+        // Obsoleto: Substituído por selectService e emitirSenha(tipo)
     },
 
     mostrarSenha(dados) {

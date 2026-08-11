@@ -23,13 +23,13 @@ class QueueService
         return array_column($res->fetchAll(PDO::FETCH_ASSOC), 'name');
     }
 
-    public function emitir(string $prefixo, int $servicoId, string $clienteUuid, ?string $deviceId = null): array
+    public function emitir(string $prefixo, int $servicoId, string $clienteUuid, ?string $deviceId = null, string $tipo = 'NORMAL'): array
     {
         try {
             Database::begin();
 
             $agora = date('Y-m-d H:i:s');
-            // Reset diário inteligente (considera 18h de janela para evitar fuso UTC)
+            // Reset diário inteligente
             $ultima = Database::fetch(
                 "SELECT numero FROM senhas
                  WHERE servico_id = ?
@@ -39,7 +39,11 @@ class QueueService
             );
 
             $numero = $ultima ? ((int)$ultima['numero']) + 1 : 1;
-            $codigoGerado = strtoupper($prefixo) . str_pad((string)$numero, 3, '0', STR_PAD_LEFT);
+
+            // Gerador de Código Diamond (v7.0) - Adiciona 'P' se for prioritário
+            $sufixoTipo = ($tipo === 'PRIORITARIO') ? 'P' : '';
+            $codigoGerado = strtoupper($prefixo) . $sufixoTipo . str_pad((string)$numero, 3, '0', STR_PAD_LEFT);
+
             $uuid = bin2hex(random_bytes(16));
 
             $cols = $this->getTableColumns('senhas');
@@ -50,6 +54,7 @@ class QueueService
                 'servico_id' => $servicoId,
                 'numero' => $numero,
                 'prefixo' => $prefixo,
+                'tipo_atendimento' => $tipo,
                 'status' => 'AGUARDANDO',
                 'device_id' => $deviceId,
                 'created_at' => $agora,
@@ -124,7 +129,7 @@ class QueueService
                              AND (device_id IS NULL OR device_id = '' OR device_id NOT IN (
                                  SELECT device_id FROM senhas WHERE status = 'CHAMANDO' AND device_id IS NOT NULL AND device_id != ''
                              ))
-                             ORDER BY id ASC LIMIT 1";
+                             ORDER BY tipo_atendimento DESC, id ASC LIMIT 1";
                 $senha = Database::fetch($sqlBusca, [$servicoId]);
             }
 

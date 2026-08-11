@@ -44,6 +44,11 @@ try {
         $servicoId = (int)($dados['servico_id'] ?? 0);
         $deviceId = trim((string)($dados['device_id'] ?? ''));
         $tokenEnviado = trim((string)($dados['t'] ?? ''));
+        $tipoAtendimento = strtoupper(trim((string)($dados['tipo'] ?? 'NORMAL')));
+
+        if (!in_array($tipoAtendimento, ['NORMAL', 'PRIORITARIO'])) {
+            $tipoAtendimento = 'NORMAL';
+        }
 
         // --- VALIDAÇÃO DE SEGURANÇA (Anti-Fila Remota & Horário de Atendimento) ---
         if (!\BTQueue\Core\Auth::autenticado()) {
@@ -141,7 +146,8 @@ try {
             $servico['prefixo'],
             $servicoId,
             $clienteUuid,
-            $deviceId
+            $deviceId,
+            $tipoAtendimento
         );
 
         if (!$resultado['success']) {
