@@ -160,7 +160,10 @@ function getDatas() {
     const agora = new Date();
     let inicio, fim;
 
-    const format = (d) => d.toISOString().split('T')[0];
+    const format = (d) => {
+        const z = (n) => (n < 10 ? '0' : '') + n;
+        return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+    };
 
     if (filtroAtual === 'mes') {
         inicio = format(new Date(agora.getFullYear(), agora.getMonth(), 1));
