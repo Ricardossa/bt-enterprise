@@ -225,11 +225,11 @@ $logoExiste = file_exists(__DIR__ . '/uploads/logo.png');
                 document.getElementById('resumo-horario').innerText = json.horario;
                 document.getElementById('resumo-data').innerText = json.data;
 
-                const cancelUrl = window.location.href.split('?')[0].replace('agendar.php', 'cancelar.php');
+                const cancelUrl = window.location.href.split('?')[0].replace('agendar.php', 'cancelar.php') + '?t=' + json.token;
                 document.getElementById('display-cancel-url').innerText = cancelUrl;
 
                 document.getElementById('btnZap').onclick = () => {
-                    const msg = `✅ *AGENDAMENTO CONFIRMADO!*\n\n📍 *Unidade:* ${document.querySelector('h2').innerText}\n📅 *Data:* ${json.data}\n🕒 *Hora:* ${json.horario}\n🔑 *Código:* ${json.token}\n\n━━━━━━━━━━━━━━━\n\n❌ *Para cancelar, acesse:*\n${cancelUrl}?t=${json.token}`;
+                    const msg = `✅ *AGENDAMENTO CONFIRMADO!*\n\n📍 *Unidade:* ${document.querySelector('h2').innerText}\n📅 *Data:* ${json.data}\n🕒 *Hora:* ${json.horario}\n🔑 *Código:* ${json.token}\n\n━━━━━━━━━━━━━━━\n\n❌ *Para cancelar, acesse:*\n${cancelUrl}`;
                     window.open(`https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`);
                 };
 
