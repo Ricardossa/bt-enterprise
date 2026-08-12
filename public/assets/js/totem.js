@@ -41,12 +41,12 @@ BT.totem = {
         } catch (e) { container.innerHTML = 'Erro ao carregar serviços.'; }
     },
 
-    // --- MÓDULO DE PRIORIDADE (v7.0.4 Diamond) ---
+    // --- MÓDULO DE PRIORIDADE (v7.0.5 Diamond) ---
     selectedServiceId: null,
 
     selectService(id) {
-        console.log("Serviço selecionado para prioridade:", id);
-        this.selectedServiceId = id;
+        console.log("Serviço selecionado:", id);
+        BT.totem.selectedServiceId = id;
 
         const stepServices = document.getElementById('step-services');
         const stepPriority = document.getElementById('step-priority');
@@ -54,41 +54,41 @@ BT.totem = {
         if (stepServices) stepServices.classList.add('hidden');
         if (stepPriority) stepPriority.classList.remove('hidden');
 
-        this.resetIdleTimer();
+        BT.totem.resetIdleTimer();
     },
 
     backToServices() {
-        this.selectedServiceId = null;
+        BT.totem.selectedServiceId = null;
         const stepServices = document.getElementById('step-services');
         const stepPriority = document.getElementById('step-priority');
 
         if (stepPriority) stepPriority.classList.add('hidden');
         if (stepServices) stepServices.classList.remove('hidden');
 
-        this.resetIdleTimer();
+        BT.totem.resetIdleTimer();
     },
 
     async emitirSenha(tipo = 'NORMAL') {
-        const id = this.selectedServiceId;
+        const id = BT.totem.selectedServiceId;
         console.log("Tentando emitir senha tipo:", tipo, "para serviço:", id);
 
         if (!id) {
             alert("Erro: Serviço não identificado. Por favor, volte e tente novamente.");
-            this.backToServices();
+            BT.totem.backToServices();
             return;
         }
 
         try {
-            const res = await fetch(this.apiSenhas, {
+            const res = await fetch(BT.totem.apiSenhas, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ servico_id: parseInt(id), tipo: tipo })
             });
             const json = await res.json();
             if (json.success) {
-                this.backToServices();
-                this.mostrarSenha(json.data);
-                this.dispararImpressao(json.data);
+                BT.totem.backToServices();
+                BT.totem.mostrarSenha(json.data);
+                BT.totem.dispararImpressao(json.data);
             } else {
                 alert(json.message);
             }

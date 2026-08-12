@@ -56,7 +56,7 @@ BT.emitter = {
                     btn.className = 'btn-premium-service';
                     btn.style.borderColor = s.cor || 'var(--primary)';
                     btn.innerHTML = `<span>${s.icone}</span> <div>${s.nome}</div>`;
-                    btn.onclick = () => this.selectService(s.id);
+                    btn.onclick = () => BT.emitter.selectService(s.id);
                     list.appendChild(btn);
                 });
             }
@@ -66,24 +66,37 @@ BT.emitter = {
         }
     },
 
-    // --- MÓDULO DE PRIORIDADE MOBILE (v7.0.3) ---
+    // --- MÓDULO DE PRIORIDADE MOBILE (v7.0.5 Diamond) ---
     selectedServiceId: null,
 
     selectService(id) {
-        this.selectedServiceId = id;
-        document.getElementById('step-services').classList.add('hidden');
-        document.getElementById('step-priority').classList.remove('hidden');
+        console.log("Mobile: Serviço selecionado:", id);
+        BT.emitter.selectedServiceId = id;
+
+        // Efeito de clique e troca de tela
+        document.getElementById('step-services').style.display = 'none';
+        document.getElementById('step-priority').style.display = 'block';
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
     backToServices() {
-        this.selectedServiceId = null;
-        document.getElementById('step-priority').classList.add('hidden');
-        document.getElementById('step-services').classList.remove('hidden');
+        BT.emitter.selectedServiceId = null;
+        document.getElementById('step-priority').style.display = 'none';
+        document.getElementById('step-services').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
     async emitir(tipo = 'NORMAL') {
-        const id = this.selectedServiceId;
-        if (!id) return;
+        const id = BT.emitter.selectedServiceId;
+        if (!id) {
+            alert("Erro: Selecione um serviço.");
+            BT.emitter.backToServices();
+            return;
+        }
+
+        const btns = document.querySelectorAll('#step-priority button');
+        btns.forEach(b => b.disabled = true);
 
         try {
             const res = await fetch('../api/senhas.php', {
@@ -100,18 +113,17 @@ BT.emitter = {
             if (json.success) {
                 // Adiciona a nova senha ao pool local sem apagar as outras
                 let tickets = JSON.parse(localStorage.getItem('bt_premium_tickets') || '[]');
-
-                // Filtra para manter apenas senhas ativas (evita lixo de dias anteriores)
                 tickets = tickets.filter(t => t.id !== json.data.id);
                 tickets.push(json.data);
-
                 localStorage.setItem('bt_premium_tickets', JSON.stringify(tickets));
+
                 window.location.href = 'acompanhar.php?uuid=' + json.data.cliente_uuid;
             } else {
                 alert("Erro: " + json.message);
-                this.backToServices();
+                BT.emitter.backToServices();
             }
         } catch (e) { alert("Falha de conexão ao emitir senha."); }
+        btns.forEach(b => b.disabled = false);
     },
 
     // --- LÓGICA DE CHECK-IN MOBILE (v6.3 Diamond) ---

@@ -168,6 +168,10 @@ main {
     border-radius: 12px;
 }
 
+.btn-premium-service:active { transform: scale(0.96); background: var(--primary); }
+
+.hidden { display: none !important; }
+
 /* ÃREA DE PROMOÃ‡Ã•ES (SLIM HERO) */
 .promo-premium-container {
     width: 100%;
