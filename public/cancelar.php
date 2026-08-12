@@ -7,6 +7,8 @@ use BTQueue\Core\Database;
 
 $msg = '';
 $sucesso = false;
+$showConfirm = false;
+$token = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = strtoupper(trim((string)($_POST['token'] ?? '')));
@@ -20,10 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 } elseif (isset($_GET['t'])) {
     $token = strtoupper(trim((string)$_GET['t']));
-    $service = new ScheduleService();
-    $res = $service->cancelar($token);
-    $msg = $res['message'];
-    $sucesso = $res['success'];
+    $showConfirm = true; // Ativa a barreira contra cancelamento acidental
 }
 
 $config = [];
@@ -60,10 +59,20 @@ $empresa = $config['empresa'] ?? 'Brandão Tech';
         </div>
     <?php endif; ?>
 
-    <?php if (!$sucesso): ?>
+    <?php if ($showConfirm): ?>
+    <div style="background: rgba(245,165,36,0.1); border: 1px solid var(--warning); padding: 25px; border-radius: 15px; margin-bottom: 20px;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 40px; color: var(--warning); margin-bottom: 15px;"></i>
+        <h3 style="color: #fff; margin-bottom: 10px;">Deseja desmarcar seu horário?</h3>
+        <p style="color: var(--text2); font-size: 14px; margin-bottom: 20px;">Você está prestes a cancelar o agendamento código: <b><?= $token ?></b>.</p>
+        <form method="POST">
+            <input type="hidden" name="token" value="<?= $token ?>">
+            <button type="submit" class="bt-button bt-danger" style="width: 100%; padding: 15px; font-weight: bold;">SIM, CANCELAR AGORA</button>
+        </form>
+    </div>
+    <?php elseif (!$sucesso): ?>
     <form method="POST">
         <input type="text" name="token" class="form-control" placeholder="CÓDIGO (Ex: 8A2B3C)" style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px; background: var(--sidebar); border: 1px solid var(--border); color: #fff; height: 60px; border-radius: 10px; width: 100%;">
-        <button type="submit" class="bt-button bt-danger" style="width: 100%; padding: 15px; font-weight: bold;">CONFIRMAR CANCELAMENTO</button>
+        <button type="submit" class="bt-button bt-primary" style="width: 100%; padding: 15px; font-weight: bold;">BUSCAR AGENDAMENTO</button>
     </form>
     <?php endif; ?>
 

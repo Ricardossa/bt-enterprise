@@ -50,12 +50,12 @@ final class ScheduleService
         $fim = $regra['hora_fim'];
         $duracao = (int)$regra['duracao_slot']; // em minutos
 
-        // 2. Busca slots já ocupados no banco
+        // 2. Busca slots já ocupados no banco (v7.3.0: Agora inclui status PRESENTE)
         $ocupadosRaw = Database::fetchAll(
             "SELECT data_agendamento FROM senhas
              WHERE servico_id = ?
              AND date(data_agendamento) = date(?)
-             AND status IN ('AGENDADO', 'CHAMANDO', 'FINALIZADA')",
+             AND status IN ('AGENDADO', 'CHAMANDO', 'FINALIZADA', 'PRESENTE')",
             [$servicoId, $data]
         );
 
@@ -93,7 +93,14 @@ final class ScheduleService
             Database::beginImmediate();
 
             $hojeData = date('Y-m-d', strtotime($dataHora));
+            $horaMinuto = date('H:i', strtotime($dataHora));
             $mesAno = date('Y-m', strtotime($dataHora));
+
+            // --- 0. VALIDAÇÃO DE GRADE E HORIZONTE (v7.3 Hardened) ---
+            $slotsValidos = $this->getSlotsDisponiveis($servicoId, $hojeData);
+            if (!in_array($horaMinuto, $slotsValidos)) {
+                throw new Exception("Desculpe, o horário selecionado não está mais disponível ou é inválido.");
+            }
 
             // 1. VERIFICA SUSPENSÃO ATIVA (Cadeado Triplo: Nome, WhatsApp ou DeviceID)
             $whatsappLimpo = preg_replace('/\D/', '', $whatsapp);
