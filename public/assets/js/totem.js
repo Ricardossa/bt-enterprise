@@ -32,36 +32,51 @@ BT.totem = {
             const json = await res.json();
             if (json.success) {
                 container.innerHTML = json.data.map(s => `
-                    <div class="totem-btn" style="border-color: ${s.cor || 'var(--border)'};" onclick="BT.totem.selectService(${s.id})">
+                    <button class="totem-btn" style="border-color: ${s.cor || 'var(--border)'}; width:100%;" onclick="BT.totem.selectService(${s.id})">
                         <span>${s.icone || '📋'}</span>
-                        <label>${s.nome}</label>
-                    </div>
+                        <label style="cursor:pointer;">${s.nome}</label>
+                    </button>
                 `).join('');
             }
         } catch (e) { container.innerHTML = 'Erro ao carregar serviços.'; }
     },
 
-    // --- MÓDULO DE PRIORIDADE (v7.0) ---
+    // --- MÓDULO DE PRIORIDADE (v7.0.4 Diamond) ---
     selectedServiceId: null,
 
     selectService(id) {
+        console.log("Serviço selecionado para prioridade:", id);
         this.selectedServiceId = id;
-        document.getElementById('step-services').classList.add('hidden');
-        document.getElementById('step-priority').classList.remove('hidden');
+
+        const stepServices = document.getElementById('step-services');
+        const stepPriority = document.getElementById('step-priority');
+
+        if (stepServices) stepServices.classList.add('hidden');
+        if (stepPriority) stepPriority.classList.remove('hidden');
+
+        this.resetIdleTimer();
     },
 
     backToServices() {
         this.selectedServiceId = null;
         const stepServices = document.getElementById('step-services');
         const stepPriority = document.getElementById('step-priority');
+
         if (stepPriority) stepPriority.classList.add('hidden');
         if (stepServices) stepServices.classList.remove('hidden');
+
         this.resetIdleTimer();
     },
 
     async emitirSenha(tipo = 'NORMAL') {
         const id = this.selectedServiceId;
-        if (!id) return;
+        console.log("Tentando emitir senha tipo:", tipo, "para serviço:", id);
+
+        if (!id) {
+            alert("Erro: Serviço não identificado. Por favor, volte e tente novamente.");
+            this.backToServices();
+            return;
+        }
 
         try {
             const res = await fetch(this.apiSenhas, {
