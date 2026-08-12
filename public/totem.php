@@ -114,9 +114,9 @@ include __DIR__ . '/includes/header.php';
         font-weight: 900;
         color: var(--secondary);
         line-height: 1;
-        margin: 30px 0;
+        margin: 20px 0;
         text-shadow: 0 0 50px rgba(29, 180, 255, 0.6);
-        letter-spacing: -5px;
+        letter-spacing: -2px; /* Reduzido de -5px para acomodar o 'P' */
     }
 
     /* ESTILOS DO PROTETOR DE TELA (IDLE MODE) */

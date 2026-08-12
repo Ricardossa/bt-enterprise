@@ -181,8 +181,16 @@ BT.totem = {
     },
 
     mostrarSenha(dados) {
-        document.getElementById('displaySenha').innerText = dados.senha;
+        const elSenha = document.getElementById('displaySenha');
+        elSenha.innerText = dados.senha;
         document.getElementById('displayServico').innerText = dados.servico_nome || 'Atendimento';
+
+        // --- SMART FONT SIZE (v7.0.8 Diamond) ---
+        // Evita que senhas longas (ex: prioritárias com 'P') vazem do card
+        const len = dados.senha.length;
+        if (len >= 6) elSenha.style.fontSize = '100px';
+        else if (len >= 5) elSenha.style.fontSize = '120px';
+        else elSenha.style.fontSize = '160px';
 
         const modal = document.getElementById('modalSenhaTotem');
         modal.style.display = 'flex';
