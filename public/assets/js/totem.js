@@ -180,10 +180,6 @@ BT.totem = {
         }
     },
 
-    async emitirSenha(servicoId) {
-        // Obsoleto: Substituído por selectService e emitirSenha(tipo)
-    },
-
     mostrarSenha(dados) {
         document.getElementById('displaySenha').innerText = dados.senha;
         document.getElementById('displayServico').innerText = dados.servico_nome || 'Atendimento';

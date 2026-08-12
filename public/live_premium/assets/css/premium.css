@@ -172,6 +172,13 @@ main {
 
 .hidden { display: none !important; }
 
+/* EFEITO DE CLIQUE DIAMOND */
+.btn-premium-service:active {
+    transform: scale(0.95);
+    background: var(--primary) !important;
+    border-color: var(--secondary) !important;
+}
+
 /* ÃREA DE PROMOÃ‡Ã•ES (SLIM HERO) */
 .promo-premium-container {
     width: 100%;
