@@ -5,6 +5,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const wa_enabled = document.getElementById("whatsapp_enabled");
     const wa_url = document.getElementById("whatsapp_api_url");
     const wa_token = document.getElementById("whatsapp_api_token");
+    const prio_mode = document.getElementById("priority_mode");
+    const prio_ratio = document.getElementById("priority_ratio");
     const logo = document.getElementById("logo");
     const botao = document.getElementById("btnSalvar");
     const preview = document.getElementById("empresaLogoPreview");
@@ -20,6 +22,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (wa_enabled) wa_enabled.value = json.data.whatsapp_enabled || "0";
             if (wa_url) wa_url.value = json.data.whatsapp_api_url || "";
             if (wa_token) wa_token.value = json.data.whatsapp_api_token || "";
+            if (prio_mode) prio_mode.value = json.data.priority_mode || "STRICT";
+            if (prio_ratio) prio_ratio.value = json.data.priority_ratio || "3";
+
+            // Toggle inicial da proporção
+            const ratioContainer = document.getElementById('priority_ratio_container');
+            if (ratioContainer && prio_mode) {
+                ratioContainer.style.display = (prio_mode.value === 'BALANCED') ? 'block' : 'none';
+            }
+
             if (preview) preview.src = BT.api.url('uploads/logo.png?v=' + Date.now());
         }
     } catch (e) {
@@ -27,6 +38,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (!botao) return;
+
+    if (prio_mode) {
+        prio_mode.addEventListener('change', () => {
+            const container = document.getElementById('priority_ratio_container');
+            if (container) container.style.display = (prio_mode.value === 'BALANCED') ? 'block' : 'none';
+        });
+    }
 
     botao.addEventListener("click", async () => {
         try {
@@ -39,7 +57,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                     label_cliente: label_cliente ? label_cliente.value.trim() : "Paciente",
                     whatsapp_enabled: wa_enabled ? wa_enabled.value : "0",
                     whatsapp_api_url: wa_url ? wa_url.value.trim() : "",
-                    whatsapp_api_token: wa_token ? wa_token.value.trim() : ""
+                    whatsapp_api_token: wa_token ? wa_token.value.trim() : "",
+                    priority_mode: prio_mode ? prio_mode.value : "STRICT",
+                    priority_ratio: prio_ratio ? prio_ratio.value : "3"
                 })
             });
 

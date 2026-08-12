@@ -98,6 +98,12 @@ class QueueService
 
             $isModoNovo = ($guicheId !== null);
             $guicheIdFinal = null;
+            $servicoId = null;
+
+            // --- CARREGA CONFIGURAÇÃO DE PRIORIDADE (v7.2 Diamond) ---
+            $cfgRows = Database::fetchAll("SELECT chave, valor FROM configuracoes WHERE chave IN ('priority_mode', 'priority_ratio')");
+            $config = ['priority_mode' => 'STRICT', 'priority_ratio' => 3];
+            foreach ($cfgRows as $r) { $config[$r['chave']] = $r['valor']; }
 
             if (!$isModoNovo) {
                 $guicheCodigoLogico = (string)$param1;
@@ -115,22 +121,54 @@ class QueueService
                              AND s.created_at > datetime('now', '-18 hours')
                              AND (s.device_id IS NULL OR s.device_id = '' OR s.device_id NOT IN (
                                  SELECT device_id FROM senhas WHERE status = 'CHAMANDO' AND device_id IS NOT NULL AND device_id != ''
-                             ))
-                             ORDER BY s.id ASC LIMIT 1";
-                $senha = Database::fetch($sqlBusca, [$guicheIdFinal]);
+                             ))";
+
+                if ($config['priority_mode'] === 'BALANCED') {
+                    $ratio = (int)$config['priority_ratio'];
+                    $ultimas = Database::fetchAll("SELECT tipo_atendimento FROM senhas WHERE status IN ('CHAMANDO', 'FINALIZADA') AND guiche_id = ? ORDER BY chamada_em DESC LIMIT ?", [$guicheIdFinal, $ratio]);
+                    $soPrioridade = (count($ultimas) >= $ratio);
+                    if ($soPrioridade) {
+                        foreach($ultimas as $u) { if($u['tipo_atendimento'] !== 'PRIORITARIO') $soPrioridade = false; }
+                    }
+
+                    if ($soPrioridade) {
+                        $checkNormal = Database::fetch($sqlBusca . " AND s.tipo_atendimento = 'NORMAL' ORDER BY s.id ASC LIMIT 1", [$guicheIdFinal]);
+                        $senha = $checkNormal ?: Database::fetch($sqlBusca . " ORDER BY s.tipo_atendimento DESC, s.id ASC LIMIT 1", [$guicheIdFinal]);
+                    } else {
+                        $senha = Database::fetch($sqlBusca . " ORDER BY s.tipo_atendimento DESC, s.id ASC LIMIT 1", [$guicheIdFinal]);
+                    }
+                } else {
+                    $senha = Database::fetch($sqlBusca . " ORDER BY s.tipo_atendimento DESC, s.id ASC LIMIT 1", [$guicheIdFinal]);
+                }
             } else {
                 $servicoId = (int)$param1;
                 $guicheIdFinal = $guicheId;
 
-                $sqlBusca = "SELECT * FROM senhas
+                $sqlBase = "SELECT * FROM senhas
                              WHERE status = 'AGUARDANDO'
                              AND servico_id = ?
                              AND created_at > datetime('now', '-18 hours')
                              AND (device_id IS NULL OR device_id = '' OR device_id NOT IN (
                                  SELECT device_id FROM senhas WHERE status = 'CHAMANDO' AND device_id IS NOT NULL AND device_id != ''
-                             ))
-                             ORDER BY tipo_atendimento DESC, id ASC LIMIT 1";
-                $senha = Database::fetch($sqlBusca, [$servicoId]);
+                             ))";
+
+                if ($config['priority_mode'] === 'BALANCED') {
+                    $ratio = (int)$config['priority_ratio'];
+                    $ultimas = Database::fetchAll("SELECT tipo_atendimento FROM senhas WHERE status IN ('CHAMANDO', 'FINALIZADA') AND servico_id = ? ORDER BY chamada_em DESC LIMIT ?", [$servicoId, $ratio]);
+                    $soPrioridade = (count($ultimas) >= $ratio);
+                    if ($soPrioridade) {
+                        foreach($ultimas as $u) { if($u['tipo_atendimento'] !== 'PRIORITARIO') $soPrioridade = false; }
+                    }
+
+                    if ($soPrioridade) {
+                        $checkNormal = Database::fetch($sqlBase . " AND tipo_atendimento = 'NORMAL' ORDER BY id ASC LIMIT 1", [$servicoId]);
+                        $senha = $checkNormal ?: Database::fetch($sqlBase . " ORDER BY tipo_atendimento DESC, id ASC LIMIT 1", [$servicoId]);
+                    } else {
+                        $senha = Database::fetch($sqlBase . " ORDER BY tipo_atendimento DESC, id ASC LIMIT 1", [$servicoId]);
+                    }
+                } else {
+                    $senha = Database::fetch($sqlBase . " ORDER BY tipo_atendimento DESC, id ASC LIMIT 1", [$servicoId]);
+                }
             }
 
             if (!$senha) {

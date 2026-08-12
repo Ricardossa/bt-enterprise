@@ -91,6 +91,25 @@ include __DIR__ . '/includes/header.php';
             </section>
 
             <section class="config-card">
+                <div class="config-section-title"><i class="fa-solid fa-scale-balanced"></i> Regra de Equilíbrio (Prioridade)</div>
+                <p style="color:var(--text2); font-size:13px; margin-bottom:20px;">Defina como o sistema deve intercalar a chamada de prioridades e normais.</p>
+
+                <div class="form-group" style="margin-bottom:15px;">
+                    <label>Modo de Chamada</label>
+                    <select id="priority_mode" class="form-control">
+                        <option value="STRICT">Prioridade Total (Sempre primeiro)</option>
+                        <option value="BALANCED">Intercalado (Regra de Equilíbrio)</option>
+                    </select>
+                </div>
+
+                <div id="priority_ratio_container" class="form-group">
+                    <label>Proporção (Prioridades : 1 Normal)</label>
+                    <input type="number" id="priority_ratio" class="form-control" placeholder="3" min="1" max="10">
+                    <small style="color:var(--text2); font-size:11px;">Ex: Se colocar 3, o sistema chamará 3 prioritários e depois 1 normal.</small>
+                </div>
+            </section>
+
+            <section class="config-card">
                 <div class="config-section-title"><i class="fa-solid fa-network-wired"></i> Conectividade e Live</div>
                 <p style="color:var(--text2); font-size:13px; margin-bottom:20px;">Configure como o sistema se comunica com os celulares e a Master.</p>
 

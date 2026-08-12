@@ -55,7 +55,9 @@ try {
         ['whatsapp_api_token', '', 'STRING', 'Token de autenticação da API'],
         ['ai_url', 'http://192.168.100.250:11434/api/generate', 'STRING', 'URL do motor de Inteligência Artificial (Ollama)'],
         ['radar_enabled', '0', 'BOOLEAN', 'Habilita o radar de faltas automáticas'],
-        ['radar_tolerance', '15', 'NUMBER', 'Minutos de tolerância para falta automática']
+        ['radar_tolerance', '15', 'NUMBER', 'Minutos de tolerância para falta automática'],
+        ['priority_mode', 'STRICT', 'STRING', 'Modo de chamada: STRICT (Sempre Prioridade) ou BALANCED (Intercalado)'],
+        ['priority_ratio', '3', 'NUMBER', 'Quantidade de prioridades antes de um normal (no modo BALANCED)']
     ];
 
     foreach ($waConfigs as $c) {
