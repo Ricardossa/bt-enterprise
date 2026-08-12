@@ -73,17 +73,17 @@ BT.emitter = {
         console.log("Mobile: Serviço selecionado:", id);
         BT.emitter.selectedServiceId = id;
 
-        // Efeito de clique e troca de tela
-        document.getElementById('step-services').style.display = 'none';
-        document.getElementById('step-priority').style.display = 'block';
+        // Sincronia de Telas Diamond (v7.0.6)
+        document.getElementById('step-services').classList.add('hidden');
+        document.getElementById('step-priority').classList.remove('hidden');
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
     backToServices() {
         BT.emitter.selectedServiceId = null;
-        document.getElementById('step-priority').style.display = 'none';
-        document.getElementById('step-services').style.display = 'block';
+        document.getElementById('step-priority').classList.add('hidden');
+        document.getElementById('step-services').classList.remove('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 

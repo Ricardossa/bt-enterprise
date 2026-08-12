@@ -41,7 +41,7 @@ BT.totem = {
         } catch (e) { container.innerHTML = 'Erro ao carregar serviços.'; }
     },
 
-    // --- MÓDULO DE PRIORIDADE (v7.0.5 Diamond) ---
+    // --- MÓDULO DE PRIORIDADE (v7.0.6 Diamond) ---
     selectedServiceId: null,
 
     selectService(id) {
@@ -70,7 +70,7 @@ BT.totem = {
 
     async emitirSenha(tipo = 'NORMAL') {
         const id = BT.totem.selectedServiceId;
-        console.log("Tentando emitir senha tipo:", tipo, "para serviço:", id);
+        console.log("Emitindo para Serviço:", id, "Tipo:", tipo);
 
         if (!id) {
             alert("Erro: Serviço não identificado. Por favor, volte e tente novamente.");
