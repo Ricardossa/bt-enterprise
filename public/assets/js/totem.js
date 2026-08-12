@@ -52,8 +52,11 @@ BT.totem = {
 
     backToServices() {
         this.selectedServiceId = null;
-        document.getElementById('step-priority').classList.add('hidden');
-        document.getElementById('step-services').classList.remove('hidden');
+        const stepServices = document.getElementById('step-services');
+        const stepPriority = document.getElementById('step-priority');
+        if (stepPriority) stepPriority.classList.add('hidden');
+        if (stepServices) stepServices.classList.remove('hidden');
+        this.resetIdleTimer();
     },
 
     async emitirSenha(tipo = 'NORMAL') {

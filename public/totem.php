@@ -84,6 +84,8 @@ include __DIR__ . '/includes/header.php';
     .totem-btn span { font-size: 64px; }
     .totem-btn label { font-size: 32px; font-weight: 900; cursor: pointer; text-transform: uppercase; }
 
+    .hidden { display: none !important; }
+
     /* MODAL OVERLAY (FOCO NO PAPEL) */
     .modal-overlay {
         display: none;
@@ -211,19 +213,33 @@ include __DIR__ . '/includes/header.php';
     </div>
 
     <!-- ETAPA 2: ESCOLHA DE PRIORIDADE (v7.0) -->
-    <div id="step-priority" class="hidden" style="width:100%; max-width:800px; margin: 40px auto; padding: 40px;">
-        <h2 style="font-size:42px; font-weight:900; margin-bottom:40px;">ESCOLHA O TIPO DE SENHA</h2>
+    <div id="step-priority" class="hidden" style="width:100%; max-width:1000px; margin: 0 auto; padding: 20px;">
+        <h2 style="font-size:48px; font-weight:900; margin-bottom:40px; color:var(--diamond);">QUAL O TIPO DE SENHA?</h2>
+
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px;">
-            <div class="totem-btn" style="height:350px; border-color:var(--primary);" onclick="BT.totem.emitirSenha('NORMAL')">
-                <span style="font-size:100px;">📋</span>
-                <label style="font-size:32px;">ATENDIMENTO NORMAL</label>
-            </div>
-            <div class="totem-btn" style="height:350px; border-color:#f5a524;" onclick="BT.totem.emitirSenha('PRIORITARIO')">
-                <span style="font-size:100px;">♿</span>
-                <label style="font-size:32px;">PRIORITÁRIO (LEI 10.048)</label>
-            </div>
+            <button class="totem-btn" style="height:400px; border-color:var(--primary); width:100%;" onclick="BT.totem.emitirSenha('NORMAL')">
+                <span style="font-size:120px;">📋</span>
+                <label style="font-size:36px; cursor:pointer;">NORMAL</label>
+            </button>
+            <button class="totem-btn" style="height:400px; border-color:#f5a524; width:100%;" onclick="BT.totem.emitirSenha('PRIORITARIO')">
+                <span style="font-size:120px;">♿</span>
+                <label style="font-size:36px; cursor:pointer;">PRIORITÁRIO</label>
+            </button>
         </div>
-        <button onclick="BT.totem.backToServices()" class="bt-button" style="margin-top:50px; width:100%; padding:20px; font-size:24px; background:transparent; border:2px solid var(--border);">VOLTAR</button>
+
+        <!-- CHECK-IN DE AGENDAMENTO (v7.0.2: Agora abaixo da prioridade) -->
+        <div style="margin-top: 30px;">
+            <button onclick="BT.totem.showCheckin()" class="totem-btn" style="height: 120px; width: 100%; border-color: var(--warning); background: rgba(255, 193, 7, 0.05);">
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <span style="font-size: 40px; color: var(--warning);">📅</span>
+                    <label style="color: var(--warning); font-size: 24px;">Já tenho agendamento</label>
+                </div>
+            </button>
+        </div>
+
+        <div style="margin-top:50px;">
+            <button onclick="BT.totem.backToServices()" class="bt-button" style="width:100%; max-width:400px; padding:25px; font-size:24px; background:rgba(255,255,255,0.05); border:2px solid var(--border); border-radius:20px; color:#fff; font-weight:bold;">← VOLTAR</button>
+        </div>
     </div>
 
 </div>
