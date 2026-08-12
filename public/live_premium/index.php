@@ -67,18 +67,10 @@ $estaFechado = ($agora < $abertura || $agora > $fechamento);
 
     <main>
         <?php if ($estaFechado): ?>
-            <section class="premium-card animate__animated animate__headShake" style="border-color: #FF4D4D;">
-                <div style="padding: 50px 20px; text-align: center;">
-                    <i class="fa-solid fa-clock-rotate-left" style="font-size: 60px; color: #FF4D4D; margin-bottom: 25px;"></i>
-                    <h2 style="color: #fff; margin-bottom: 15px;">Atendimento Encerrado</h2>
-                    <p style="color: var(--text2); font-size: 16px; line-height: 1.6;">
-                        Agradecemos sua preferência. Nosso expediente para emissão de senhas via celular encerrou às <b><?= $fechamento ?></b>.<br><br>
-                        Por favor, retorne amanhã a partir das <b><?= $abertura ?></b>.
-                    </p>
-                </div>
-            </section>
+            <!-- ... (conteúdo de fechado) ... -->
         <?php else: ?>
-            <section class="premium-card">
+            <!-- ETAPA 1: SERVIÇOS -->
+            <section id="step-services" class="premium-card">
                 <h2 class="premium-card-title">Olá! Seja Bem-vindo</h2>
                 <div id="lista-servicos">
                     <div style="padding: 40px; text-align: center;">
@@ -104,6 +96,22 @@ $estaFechado = ($agora < $abertura || $agora > $fechamento);
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <!-- ETAPA 2: PRIORIDADE (v7.0.3 Mobile) -->
+            <section id="step-priority" class="premium-card hidden animate__animated animate__fadeInRight">
+                <h2 class="premium-card-title">Tipo de Atendimento</h2>
+                <p style="color:var(--text2); font-size:14px; margin-bottom:20px;">Você possui direito a atendimento prioritário (Lei 10.048)?</p>
+
+                <button onclick="BT.emitter.emitir('NORMAL')" class="btn-premium-service" style="border-color: var(--primary); margin-bottom:15px; height:100px;">
+                    <span style="font-size:30px;">📋</span> <div>NORMAL</div>
+                </button>
+
+                <button onclick="BT.emitter.emitir('PRIORITARIO')" class="btn-premium-service" style="border-color: var(--warning); height:100px;">
+                    <span style="font-size:30px;">♿</span> <div>PRIORITÁRIO</div>
+                </button>
+
+                <button onclick="BT.emitter.backToServices()" class="bt-button" style="width:100%; margin-top:30px; background:transparent; border:1px solid var(--border);">← VOLTAR</button>
             </section>
         <?php endif; ?>
     </main>

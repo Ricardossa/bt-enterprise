@@ -56,7 +56,7 @@ BT.emitter = {
                     btn.className = 'btn-premium-service';
                     btn.style.borderColor = s.cor || 'var(--primary)';
                     btn.innerHTML = `<span>${s.icone}</span> <div>${s.nome}</div>`;
-                    btn.onclick = () => this.emitir(s.id);
+                    btn.onclick = () => this.selectService(s.id);
                     list.appendChild(btn);
                 });
             }
@@ -66,15 +66,34 @@ BT.emitter = {
         }
     },
 
-    async emitir(id) {
+    // --- MÓDULO DE PRIORIDADE MOBILE (v7.0.3) ---
+    selectedServiceId: null,
+
+    selectService(id) {
+        this.selectedServiceId = id;
+        document.getElementById('step-services').classList.add('hidden');
+        document.getElementById('step-priority').classList.remove('hidden');
+    },
+
+    backToServices() {
+        this.selectedServiceId = null;
+        document.getElementById('step-priority').classList.add('hidden');
+        document.getElementById('step-services').classList.remove('hidden');
+    },
+
+    async emitir(tipo = 'NORMAL') {
+        const id = this.selectedServiceId;
+        if (!id) return;
+
         try {
             const res = await fetch('../api/senhas.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     servico_id: id,
-                    device_id: this.deviceUuid, // Envia Identidade do Celular
-                    t: this.currentToken
+                    device_id: this.deviceUuid,
+                    t: this.currentToken,
+                    tipo: tipo
                 })
             });
             const json = await res.json();
@@ -90,6 +109,7 @@ BT.emitter = {
                 window.location.href = 'acompanhar.php?uuid=' + json.data.cliente_uuid;
             } else {
                 alert("Erro: " + json.message);
+                this.backToServices();
             }
         } catch (e) { alert("Falha de conexão ao emitir senha."); }
     },
