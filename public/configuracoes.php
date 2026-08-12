@@ -91,8 +91,17 @@ include __DIR__ . '/includes/header.php';
             </section>
 
             <section class="config-card">
-                <div class="config-section-title"><i class="fa-solid fa-scale-balanced"></i> Regra de Equilíbrio (Prioridade)</div>
-                <p style="color:var(--text2); font-size:13px; margin-bottom:20px;">Defina como o sistema deve intercalar a chamada de prioridades e normais.</p>
+                <div class="config-section-title"><i class="fa-solid fa-scale-balanced"></i> Regras do Totem & Prioridade</div>
+                <p style="color:var(--text2); font-size:13px; margin-bottom:20px;">Configure como o Totem (Físico e Mobile) deve tratar as prioridades.</p>
+
+                <div class="form-group" style="margin-bottom:15px; background:rgba(29, 180, 255, 0.05); padding:15px; border-radius:10px;">
+                    <label>Habilitar Triagem de Prioridade?</label>
+                    <select id="feature_priority_selection" class="form-control">
+                        <option value="1">Sim (Mostra tela Normal/Prioritário)</option>
+                        <option value="0">Não (Emite Normal instantaneamente)</option>
+                    </select>
+                    <small style="color:var(--text2); font-size:10px;">Se desativado, o sistema ignora a tela de escolha para maior rapidez.</small>
+                </div>
 
                 <div class="form-group" style="margin-bottom:15px;">
                     <label>Modo de Chamada</label>

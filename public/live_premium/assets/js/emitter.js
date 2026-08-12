@@ -73,6 +73,13 @@ BT.emitter = {
         console.log("Mobile: Serviço selecionado:", id);
         BT.emitter.selectedServiceId = id;
 
+        // --- BYPASS DE PRIORIDADE (v7.4 Diamond) ---
+        if (window.BT_MOBILE_CONFIG?.priority_selection === '0') {
+            console.log("Mobile: Triagem desativada. Emitindo Normal...");
+            BT.emitter.emitir('NORMAL');
+            return;
+        }
+
         // Sincronia de Telas Diamond (v7.0.6)
         document.getElementById('step-services').classList.add('hidden');
         document.getElementById('step-priority').classList.remove('hidden');

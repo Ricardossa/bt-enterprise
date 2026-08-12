@@ -57,7 +57,8 @@ try {
         ['radar_enabled', '0', 'BOOLEAN', 'Habilita o radar de faltas automáticas'],
         ['radar_tolerance', '15', 'NUMBER', 'Minutos de tolerância para falta automática'],
         ['priority_mode', 'STRICT', 'STRING', 'Modo de chamada: STRICT (Sempre Prioridade) ou BALANCED (Intercalado)'],
-        ['priority_ratio', '3', 'NUMBER', 'Quantidade de prioridades antes de um normal (no modo BALANCED)']
+        ['priority_ratio', '3', 'NUMBER', 'Quantidade de prioridades antes de um normal (no modo BALANCED)'],
+        ['feature_priority_selection', '1', 'BOOLEAN', 'Habilita a tela de escolha entre Normal e Prioritário no Totem']
     ];
 
     foreach ($waConfigs as $c) {

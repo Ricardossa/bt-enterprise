@@ -48,6 +48,14 @@ BT.totem = {
         console.log("Serviço selecionado:", id);
         BT.totem.selectedServiceId = id;
 
+        // --- BYPASS DE PRIORIDADE (v7.4 Diamond) ---
+        // Se a triagem estiver desativada, emite Normal direto sem perguntar
+        if (window.BT_TOTEM_CONFIG?.priority_selection === '0') {
+            console.log("Triagem desativada. Emitindo Normal instantâneo...");
+            BT.totem.emitirSenha('NORMAL');
+            return;
+        }
+
         const stepServices = document.getElementById('step-services');
         const stepPriority = document.getElementById('step-priority');
 

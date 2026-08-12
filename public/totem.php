@@ -24,7 +24,8 @@ include __DIR__ . '/includes/header.php';
         url_local: "<?= addslashes($configs['url_local'] ?? '') ?>",
         url_publica: "<?= addslashes($configs['url_publica'] ?? '') ?>",
         modo: "<?= addslashes($configs['modo'] ?? 'lan') ?>",
-        print_ip: "<?= addslashes($configs['local_print_ip'] ?? '') ?>"
+        print_ip: "<?= addslashes($configs['local_print_ip'] ?? '') ?>",
+        priority_selection: "<?= addslashes($configs['feature_priority_selection'] ?? '1') ?>"
     };
 </script>
 

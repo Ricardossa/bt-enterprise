@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const wa_token = document.getElementById("whatsapp_api_token");
     const prio_mode = document.getElementById("priority_mode");
     const prio_ratio = document.getElementById("priority_ratio");
+    const prio_selection = document.getElementById("feature_priority_selection");
     const logo = document.getElementById("logo");
     const botao = document.getElementById("btnSalvar");
     const preview = document.getElementById("empresaLogoPreview");
@@ -24,6 +25,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (wa_token) wa_token.value = json.data.whatsapp_api_token || "";
             if (prio_mode) prio_mode.value = json.data.priority_mode || "STRICT";
             if (prio_ratio) prio_ratio.value = json.data.priority_ratio || "3";
+            if (prio_selection) prio_selection.value = json.data.feature_priority_selection || "1";
 
             // Toggle inicial da proporção
             const ratioContainer = document.getElementById('priority_ratio_container');
@@ -59,7 +61,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     whatsapp_api_url: wa_url ? wa_url.value.trim() : "",
                     whatsapp_api_token: wa_token ? wa_token.value.trim() : "",
                     priority_mode: prio_mode ? prio_mode.value : "STRICT",
-                    priority_ratio: prio_ratio ? prio_ratio.value : "3"
+                    priority_ratio: prio_ratio ? prio_ratio.value : "3",
+                    feature_priority_selection: prio_selection ? prio_selection.value : "1"
                 })
             });
 

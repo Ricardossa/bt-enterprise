@@ -52,7 +52,8 @@ $estaFechado = ($agora < $abertura || $agora > $fechamento);
 
         <script>
             window.BT_MOBILE_CONFIG = {
-                multi_ticket: <?= ($config['feature_multi_ticket'] ?? '1') === '1' ? 'true' : 'false' ?>
+                multi_ticket: <?= ($config['feature_multi_ticket'] ?? '1') === '1' ? 'true' : 'false' ?>,
+                priority_selection: "<?= $config['feature_priority_selection'] ?? '1' ?>"
             };
         </script>
 
