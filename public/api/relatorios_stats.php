@@ -47,10 +47,27 @@ try {
             COUNT(*) as total_emitidas,
             SUM(CASE WHEN cliente_uuid IN ('GOOGLE-CALENDAR', 'NATIVO') THEN 1 ELSE 0 END) as total_agendados,
             SUM(CASE WHEN cliente_uuid NOT IN ('GOOGLE-CALENDAR', 'NATIVO') THEN 1 ELSE 0 END) as total_presencial,
+            SUM(CASE WHEN tipo_atendimento = 'PRIORITARIO' THEN 1 ELSE 0 END) as total_prioritarias,
+            SUM(CASE WHEN COALESCE(tipo_atendimento, 'NORMAL') = 'NORMAL' THEN 1 ELSE 0 END) as total_normais,
             AVG(CAST((strftime('%s', chamada_em) - strftime('%s', emitida_em)) AS INT) / 60.0) as espera_global
         FROM senhas
         WHERE date(created_at) BETWEEN ? AND ?
     ", $params);
+
+    // 5. Situação atual da fila, separada por serviço e tipo de atendimento
+    $filaAtual = Database::fetchAll("
+        SELECT
+            s.nome,
+            COUNT(*) as aguardando,
+            SUM(CASE WHEN sen.tipo_atendimento = 'PRIORITARIO' THEN 1 ELSE 0 END) as prioritarias,
+            SUM(CASE WHEN COALESCE(sen.tipo_atendimento, 'NORMAL') = 'NORMAL' THEN 1 ELSE 0 END) as normais
+        FROM senhas sen
+        JOIN servicos s ON s.id = sen.servico_id
+        WHERE sen.status IN ('AGUARDANDO', 'CONGELADA')
+        AND sen.created_at > datetime('now', '-18 hours')
+        GROUP BY s.id, s.nome
+        ORDER BY aguardando DESC, s.nome ASC
+    ");
 
     // 4. Movimento por Hora (Picos)
     $movimentoHora = Database::fetchAll("
@@ -72,9 +89,12 @@ try {
                 'total_emitidas' => (int)($resumo['total_emitidas'] ?? 0),
                 'total_agendados' => (int)($resumo['total_agendados'] ?? 0),
                 'total_presencial' => (int)($resumo['total_presencial'] ?? 0),
+                'total_prioritarias' => (int)($resumo['total_prioritarias'] ?? 0),
+                'total_normais' => (int)($resumo['total_normais'] ?? 0),
                 'espera_global' => (float)($resumo['espera_global'] ?? 0)
             ],
-            'picos' => $movimentoHora ?: []
+            'picos' => $movimentoHora ?: [],
+            'fila_atual' => $filaAtual ?: []
         ]
     ], JSON_UNESCAPED_UNICODE);
 

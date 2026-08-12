@@ -28,25 +28,37 @@ include __DIR__ . '/includes/header.php';
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <div>
             <h2><i class="fa-solid fa-chart-pie"></i> Inteligência de Negócio</h2>
-            <p style="color:var(--text2); font-size:14px;">Análise de produtividade e tempo médio de espera.</p>
+            <p style="color:var(--text2); font-size:14px;">Análise de produtividade e tempo médio de espera. <span id="label-periodo" style="color:var(--secondary); font-weight:bold; margin-left:10px;"></span></p>
         </div>
 
-        <!-- FILTROS DE PERÍODO -->
-        <div style="display:flex; gap:10px; background:var(--sidebar); padding:5px; border-radius:10px; border:1px solid var(--border);">
-            <button onclick="setPeriodo('hoje')" class="bt-button" id="btn-hoje" style="padding:8px 15px; font-size:12px;">HOJE</button>
-            <button onclick="setPeriodo('mes')" class="bt-button" id="btn-mes" style="padding:8px 15px; font-size:12px; background:transparent;">MÊS</button>
-            <button onclick="setPeriodo('ano')" class="bt-button" id="btn-ano" style="padding:8px 15px; font-size:12px; background:transparent;">ANO</button>
+        <div style="text-align:right; display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:11px; color:var(--text3); text-transform:uppercase;">
+                <i class="fa-solid fa-arrows-rotate"></i> Auto-refresh: <b id="timer-refresh">60s</b> |
+                Última: <b id="last-update">--:--</b>
+            </div>
+            <!-- FILTROS DE PERÍODO -->
+            <div style="display:flex; gap:10px; background:var(--sidebar); padding:5px; border-radius:10px; border:1px solid var(--border);">
+                <button onclick="setPeriodo('hoje')" class="bt-button" id="btn-hoje" style="padding:8px 15px; font-size:12px;">HOJE</button>
+                <button onclick="setPeriodo('mes')" class="bt-button" id="btn-mes" style="padding:8px 15px; font-size:12px; background:transparent;">MÊS</button>
+                <button onclick="setPeriodo('ano')" class="bt-button" id="btn-ano" style="padding:8px 15px; font-size:12px; background:transparent;">ANO</button>
+            </div>
         </div>
     </div>
 
     <!-- RESUMO RÁPIDO -->
-    <div class="report-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 30px;">
+    <div class="report-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-top: 30px;">
         <div class="metric-card">
             <div class="metric-title"><i class="fa-solid fa-ticket"></i> Total Emitidas</div>
             <div class="big-number" id="total-emitidas">--</div>
-            <div style="margin-top:10px; font-size:12px; color:var(--text2); display:flex; justify-content:space-between;">
-                <span>🎟️ Totem: <b id="total-presencial" style="color:#fff">--</b></span>
-                <span>📅 Agenda: <b id="total-agendados" style="color:var(--warning)">--</b></span>
+            <div style="margin-top:10px; font-size:12px; color:var(--text2); display:flex; flex-direction:column; gap:5px;">
+                <div style="display:flex; justify-content:space-between;">
+                    <span>📍 Presencial: <b id="total-presencial" style="color:#fff">--</b></span>
+                    <span>📅 Agenda: <b id="total-agendados" style="color:var(--warning)">--</b></span>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top:5px;">
+                    <span>♿ Prioritárias: <b id="total-prioritarias" style="color:var(--warning)">--</b></span>
+                    <span>👤 Normais: <b id="total-normais" style="color:#fff">--</b></span>
+                </div>
             </div>
         </div>
         <div class="metric-card">
@@ -60,7 +72,6 @@ include __DIR__ . '/includes/header.php';
     </div>
 
     <div class="report-grid">
-
         <!-- RANKING OPERADORES -->
         <section class="metric-card">
             <div class="metric-title"><i class="fa-solid fa-medal"></i> Ranking de Produtividade</div>
@@ -78,6 +89,26 @@ include __DIR__ . '/includes/header.php';
             </table>
         </section>
 
+        <!-- SITUAÇÃO DA FILA ATUAL -->
+        <section class="metric-card" style="border-top: 4px solid var(--primary);">
+            <div class="metric-title"><i class="fa-solid fa-users-viewfinder"></i> Quadro de Fila Atual</div>
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Serviço</th>
+                        <th style="text-align:center;">Total</th>
+                        <th style="text-align:center;">♿</th>
+                        <th style="text-align:center;">👤</th>
+                    </tr>
+                </thead>
+                <tbody id="lista-fila-atual">
+                    <!-- Injetado via JS -->
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <div class="report-grid">
         <!-- ESPERA POR SERVIÇO -->
         <section class="metric-card">
             <div class="metric-title"><i class="fa-solid fa-hourglass-half"></i> Espera por Serviço</div>
@@ -93,7 +124,6 @@ include __DIR__ . '/includes/header.php';
                 </tbody>
             </table>
         </section>
-
     </div>
 
     <!-- 🧠 BT DIAMOND AI INSIGHTS (v6.7) -->
@@ -124,6 +154,7 @@ include __DIR__ . '/includes/header.php';
 
 <script>
 let filtroAtual = 'hoje';
+let refreshTimer = 60;
 
 function getDatas() {
     const agora = new Date();
@@ -148,35 +179,33 @@ function setPeriodo(p) {
     filtroAtual = p;
     ['hoje', 'mes', 'ano'].forEach(btn => {
         const el = document.getElementById('btn-' + btn);
-        el.style.background = (btn === p) ? 'var(--primary)' : 'transparent';
+        if (el) el.style.background = (btn === p) ? 'var(--primary)' : 'transparent';
     });
+    refreshTimer = 60; // Reinicia o timer ao trocar filtro
     carregarDados();
 }
 
 async function carregarDados() {
     const { inicio, fim } = getDatas();
+    document.getElementById('label-periodo').innerText = (inicio === fim) ? `(${inicio.split('-').reverse().join('/')})` : `(${inicio.split('-').reverse().join('/')} até ${fim.split('-').reverse().join('/')})`;
+
     try {
         const res = await fetch(`api/relatorios_stats.php?inicio=${inicio}&fim=${fim}`);
         if (!res.ok) {
-            if (res.status === 401) {
-                window.location = 'login.php';
-                return;
-            }
+            if (res.status === 401) { window.location = 'login.php'; return; }
             throw new Error(`Erro HTTP: ${res.status}`);
         }
 
         const json = await res.json();
-
-        if (!json.success) {
-            console.error("API Error:", json.message);
-            return;
-        }
+        if (!json.success) { console.error("API Error:", json.message); return; }
         const d = json.data;
 
         // Resumo
         document.getElementById('total-emitidas').innerText = d.resumo.total_emitidas || 0;
         document.getElementById('total-presencial').innerText = d.resumo.total_presencial || 0;
         document.getElementById('total-agendados').innerText = d.resumo.total_agendados || 0;
+        document.getElementById('total-prioritarias').innerText = d.resumo.total_prioritarias || 0;
+        document.getElementById('total-normais').innerText = d.resumo.total_normais || 0;
         document.getElementById('espera-global').innerHTML = `${Math.round(d.resumo.espera_global || 0)} <span class="unit">min</span>`;
 
         // Horário de Pico
@@ -195,6 +224,17 @@ async function carregarDados() {
             </tr>
         `).join('') || '<tr><td colspan="3" class="text-center">Nenhum dado.</td></tr>';
 
+        // Situação Fila Atual
+        const filaBody = document.getElementById('lista-fila-atual');
+        filaBody.innerHTML = d.fila_atual.map(f => `
+            <tr>
+                <td><b>${f.nome}</b></td>
+                <td align="center"><span class="badge" style="background:var(--primary)">${f.aguardando}</span></td>
+                <td align="center" style="color:var(--warning)"><b>${f.prioritarias}</b></td>
+                <td align="center">${f.normais}</td>
+            </tr>
+        `).join('') || '<tr><td colspan="4" class="text-center">Ninguém aguardando.</td></tr>';
+
         // Espera por Serviço
         const esperaBody = document.getElementById('lista-espera-servico');
         esperaBody.innerHTML = d.espera_servico.map(s => `
@@ -206,8 +246,23 @@ async function carregarDados() {
             </tr>
         `).join('') || '<tr><td colspan="2" class="text-center">Nenhum dado.</td></tr>';
 
+        // Update timestamp
+        document.getElementById('last-update').innerText = new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+
     } catch (e) { console.error(e); }
 }
+
+// Timer de Auto-Refresh
+setInterval(() => {
+    if (refreshTimer > 0) {
+        refreshTimer--;
+        const el = document.getElementById('timer-refresh');
+        if (el) el.innerText = refreshTimer + 's';
+    } else {
+        refreshTimer = 60;
+        carregarDados();
+    }
+}, 1000);
 
 document.getElementById('btnSolicitarAI').onclick = async () => {
     const btn = document.getElementById('btnSolicitarAI');
