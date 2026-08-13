@@ -43,7 +43,22 @@ BT.tracker = {
 
     updateTicketList() {
         const saved = localStorage.getItem('bt_premium_tickets');
-        const tickets = saved ? JSON.parse(saved) : [];
+        let tickets = saved ? JSON.parse(saved) : [];
+
+        // v2.5.0: Filtro de Frescor Diamond (Auto-Purga de senhas velhas)
+        const hoje = new Date().toISOString().split('T')[0];
+        const ticketsValidos = tickets.filter(t => {
+            // Se não tem data (erro raro) ou se a data é de hoje, mantém.
+            // Se for de outro dia, apaga para não confundir o cliente.
+            if (!t.created_at) return true;
+            return t.created_at.startsWith(hoje);
+        });
+
+        if (ticketsValidos.length !== tickets.length) {
+            console.warn("🧹 Purga de senhas antigas realizada.");
+            tickets = ticketsValidos;
+            localStorage.setItem('bt_premium_tickets', JSON.stringify(tickets));
+        }
 
         // Se não houver senhas, volta para a tela inicial (Totem)
         if (tickets.length === 0) {

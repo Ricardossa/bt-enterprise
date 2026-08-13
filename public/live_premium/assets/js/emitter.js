@@ -34,7 +34,13 @@ BT.emitter = {
 
         // --- GESTÃO DE MÚLTIPLAS SENHAS (PLATFORM DIAMOND) ---
         const saved = localStorage.getItem('bt_premium_tickets');
-        const tickets = saved ? JSON.parse(saved) : [];
+        let tickets = saved ? JSON.parse(saved) : [];
+
+        // v2.5.0: Filtro de Frescor (Purga senhas de dias anteriores)
+        const hoje = new Date().toISOString().split('T')[0];
+        tickets = tickets.filter(t => !t.created_at || t.created_at.startsWith(hoje));
+        localStorage.setItem('bt_premium_tickets', JSON.stringify(tickets));
+
         const isMultiTicketEnabled = window.BT_MOBILE_CONFIG?.multi_ticket !== false;
 
         if (!isMultiTicketEnabled && tickets.length >= 1) {

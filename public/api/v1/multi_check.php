@@ -29,11 +29,12 @@ try {
     $placeholders = implode(',', array_fill(0, count($uuids), '?'));
     $sql = "SELECT s.id, $campoCodigo as senha, s.status, s.guiche_id, s.servico_id, s.cliente_uuid,
                    sv.nome as servico_nome, sv.icone as servico_icone, sv.cor as servico_cor, sv.tempo_medio,
-                   g.nome as guiche_nome
+                   g.nome as guiche_nome, s.created_at
             FROM senhas s
             LEFT JOIN servicos sv ON sv.id = s.servico_id
             LEFT JOIN guiches g ON g.id = s.guiche_id
-            WHERE s.cliente_uuid IN ($placeholders)";
+            WHERE s.cliente_uuid IN ($placeholders)
+            AND s.created_at > datetime('now', '-18 hours')";
 
     $rows = Database::fetchAll($sql, $uuids);
 
