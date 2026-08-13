@@ -55,6 +55,10 @@ final class SyncService
             try {
                 $compliance = new \BTQueue\Core\ComplianceService();
                 $compliance->runRadar();
+
+                // --- AUTO-FINALIZADOR DIÁRIO (v7.5.1 Diamond) ---
+                // Finaliza senhas de dias anteriores para evitar "fantasmas" no celular do cliente
+                Database::execute("UPDATE senhas SET status = 'FINALIZADA', finalizada_em = CURRENT_TIMESTAMP WHERE status IN ('AGUARDANDO', 'CHAMANDO', 'CONGELADA') AND created_at < datetime('now', '-18 hours')");
             } catch (\Throwable $e) {}
 
             // 2. Prepara Pulse (Heartbeat + Fila Pendente)
