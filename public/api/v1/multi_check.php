@@ -65,6 +65,7 @@ try {
         $results[] = [
             'id' => $s['id'],
             'cliente_uuid' => $s['cliente_uuid'],
+            'servico_id' => (int)$s['servico_id'], // v2.4.1: Vital para ocultação de botões
             'senha' => $s['senha'],
             'status' => $status,
             'servico' => $s['servico_nome'] ?? 'Atendimento',

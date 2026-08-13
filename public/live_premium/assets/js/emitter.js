@@ -51,7 +51,21 @@ BT.emitter = {
             const json = await res.json();
             if (json.success) {
                 list.innerHTML = '';
+
+                // v2.4.1: Filtro de Ocultação Premium (Só mostra serviços que eu NÃO tenho senha ativa)
+                const saved = localStorage.getItem('bt_premium_tickets');
+                const tickets = saved ? JSON.parse(saved) : [];
+                const activeServiceIds = tickets
+                    .map(t => parseInt(t.servico_id))
+                    .filter(id => !isNaN(id));
+
                 json.data.forEach(s => {
+                    const idAtual = parseInt(s.id);
+                    if (activeServiceIds.includes(idAtual)) {
+                        console.log("PREMIUM: Ocultando serviço ativo:", s.nome);
+                        return; // Pula este serviço
+                    }
+
                     const btn = document.createElement('button');
                     btn.className = 'btn-premium-service';
                     btn.style.borderColor = s.cor || 'var(--primary)';
@@ -59,6 +73,10 @@ BT.emitter = {
                     btn.onclick = () => BT.emitter.selectService(s.id);
                     list.appendChild(btn);
                 });
+
+                if (list.innerHTML === '') {
+                    list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text2); font-size:14px;">Você já possui senhas ativas para todos os serviços.</div>';
+                }
             }
         } catch (e) {
             console.error("Erro API:", e);
@@ -118,13 +136,17 @@ BT.emitter = {
             });
             const json = await res.json();
             if (json.success) {
+                // v2.4.1: Garante o servico_id na gravação inicial para ocultação imediata
+                const novoTicket = json.data;
+                if (!novoTicket.servico_id) novoTicket.servico_id = id;
+
                 // Adiciona a nova senha ao pool local sem apagar as outras
                 let tickets = JSON.parse(localStorage.getItem('bt_premium_tickets') || '[]');
-                tickets = tickets.filter(t => t.id !== json.data.id);
-                tickets.push(json.data);
+                tickets = tickets.filter(t => t.id !== novoTicket.id);
+                tickets.push(novoTicket);
                 localStorage.setItem('bt_premium_tickets', JSON.stringify(tickets));
 
-                window.location.href = 'acompanhar.php?uuid=' + json.data.cliente_uuid;
+                window.location.href = 'acompanhar.php?uuid=' + novoTicket.cliente_uuid;
             } else {
                 alert("Erro: " + json.message);
                 BT.emitter.backToServices();
