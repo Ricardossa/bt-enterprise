@@ -161,6 +161,8 @@ try {
                 'data' => $resultado
             ], JSON_UNESCAPED_UNICODE);
         } else {
+            echo json_encode($resultado, JSON_UNESCAPED_UNICODE);
+        }
 
         exit;
     }
