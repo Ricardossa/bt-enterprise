@@ -42,7 +42,15 @@ BT.live = {
             const json = await res.json();
             if (json.success) {
                 list.innerHTML = '';
+
+                // v2.3.0: Filtro de Ocultação (Só mostra serviços que eu NÃO tenho senha ativa)
+                const activeServiceIds = this.tickets.map(t => parseInt(t.servico_id));
+
                 json.data.forEach(s => {
+                    if (activeServiceIds.includes(parseInt(s.id))) {
+                        return; // Pula este serviço
+                    }
+
                     const btn = document.createElement('button');
                     btn.className = 'service-btn';
                     btn.style.background = s.cor || '#0019FF';
@@ -50,6 +58,10 @@ BT.live = {
                     btn.onclick = () => this.emitir(s.id);
                     list.appendChild(btn);
                 });
+
+                if (list.innerHTML === '') {
+                    list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text2);">Você já possui senhas para todos os serviços disponíveis.</div>';
+                }
             }
         } catch (e) { list.innerHTML = 'Erro ao carregar serviços.'; }
     },

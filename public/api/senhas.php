@@ -139,6 +139,26 @@ try {
             }
         }
 
+        // --- BARREIRA DIAMOND ANTI-DUPLICIDADE (v7.5) ---
+        // Bloqueia se o aparelho tentar emitir para o MESMO serviço em menos de 10 segundos (Anti-Double-Click)
+        // O bloqueio de longo prazo agora é feito pela OCULTAÇÃO do botão no Frontend.
+        $checkFlood = Database::fetch(
+            "SELECT id FROM senhas
+             WHERE servico_id = ?
+             AND status IN ('AGUARDANDO','CHAMANDO','CONGELADA')
+             AND created_at > datetime('now', '-10 seconds')
+             LIMIT 1",
+            [$servicoId]
+        );
+
+        if ($checkFlood && !\BTQueue\Core\Auth::autenticado()) {
+            echo json_encode([
+                'success' => false,
+                'message' => '🛑 Aguarde a emissão da senha anterior ser concluída.'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
         $clienteUuid = bin2hex(random_bytes(16));
         $queue = new QueueService();
 
