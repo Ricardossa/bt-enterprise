@@ -45,6 +45,7 @@ BT.live = {
 
                 // v2.3.0: Filtro de Ocultação (Só mostra serviços que eu NÃO tenho senha ativa)
                 const activeServiceIds = this.tickets.map(t => parseInt(t.servico_id));
+                console.log("Serviços ativos na memória:", activeServiceIds);
 
                 json.data.forEach(s => {
                     if (activeServiceIds.includes(parseInt(s.id))) {
@@ -142,7 +143,9 @@ BT.live = {
                     this.tickets[i].tempo = d.tempo_estimado;
                     this.tickets[i].guiche = d.guiche;
                     this.tickets[i].msg = d.mensagem;
-                    this.tickets[i].servico_id = d.servico_id; // v2.3.1: Atualiza ID do serviço
+                    this.tickets[i].servico_id = parseInt(d.servico_id);
+
+                    this.saveTickets(); // v2.3.4: Sela a memória local
 
                     if (d.status === 'CHAMANDO' && d.senha !== this.ultimaSenhaFalada) {
                         this.notificar(d);
