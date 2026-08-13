@@ -142,6 +142,7 @@ BT.live = {
                     this.tickets[i].tempo = d.tempo_estimado;
                     this.tickets[i].guiche = d.guiche;
                     this.tickets[i].msg = d.mensagem;
+                    this.tickets[i].servico_id = d.servico_id; // v2.3.1: Atualiza ID do serviço
 
                     if (d.status === 'CHAMANDO' && d.senha !== this.ultimaSenhaFalada) {
                         this.notificar(d);

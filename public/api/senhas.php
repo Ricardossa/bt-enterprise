@@ -139,26 +139,6 @@ try {
             }
         }
 
-        // --- BARREIRA DIAMOND ANTI-DUPLICIDADE (v7.5) ---
-        // Bloqueia se o aparelho tentar emitir para o MESMO serviço em menos de 10 segundos (Anti-Double-Click)
-        // O bloqueio de longo prazo agora é feito pela OCULTAÇÃO do botão no Frontend.
-        $checkFlood = Database::fetch(
-            "SELECT id FROM senhas
-             WHERE servico_id = ?
-             AND status IN ('AGUARDANDO','CHAMANDO','CONGELADA')
-             AND created_at > datetime('now', '-10 seconds')
-             LIMIT 1",
-            [$servicoId]
-        );
-
-        if ($checkFlood && !\BTQueue\Core\Auth::autenticado()) {
-            echo json_encode([
-                'success' => false,
-                'message' => '🛑 Aguarde a emissão da senha anterior ser concluída.'
-            ], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-
         $clienteUuid = bin2hex(random_bytes(16));
         $queue = new QueueService();
 
@@ -170,19 +150,17 @@ try {
             $tipoAtendimento
         );
 
-        if (!$resultado['success']) {
-            echo json_encode($resultado, JSON_UNESCAPED_UNICODE);
-            exit;
-        }
+        if ($resultado['success']) {
+            $resultado['servico_nome'] = $servico['nome'];
+            $resultado['cliente_uuid'] = $clienteUuid;
+            $resultado['servico_id'] = $servicoId; // v2.3.1: Vital para ocultação de botão
 
-        $resultado['servico_nome'] = $servico['nome'];
-        $resultado['cliente_uuid'] = $clienteUuid;
-
-        echo json_encode([
-            'success' => true,
-            'message' => 'Senha gerada com sucesso!',
-            'data' => $resultado
-        ], JSON_UNESCAPED_UNICODE);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Senha gerada com sucesso!',
+                'data' => $resultado
+            ], JSON_UNESCAPED_UNICODE);
+        } else {
 
         exit;
     }

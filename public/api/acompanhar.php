@@ -62,6 +62,7 @@ try {
         'data' => [
             'senha'   => $senha['codigo_real'],
             'status'  => $senha['status'],
+            'servico_id' => (int)$senha['servico_id'], // v2.3.1: Vital para ocultação de botões
             'posicao' => $isFrozen ? '--' : $pessoas,
             'guiche'  => $guiche ? $guiche['nome'] : '--',
             'servico' => $servico ? $servico['nome'] : 'Atendimento',
