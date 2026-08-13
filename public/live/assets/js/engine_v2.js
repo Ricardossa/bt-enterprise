@@ -51,6 +51,7 @@ BT.live = {
 
                 console.log("Serviços Ocultos (Ativos):", activeServiceIds);
 
+                let visibleCount = 0;
                 json.data.forEach(s => {
                     const idAtual = parseInt(s.id);
                     if (activeServiceIds.includes(idAtual)) {
@@ -58,6 +59,7 @@ BT.live = {
                         return;
                     }
 
+                    visibleCount++;
                     const btn = document.createElement('button');
                     btn.className = 'service-btn';
                     btn.style.background = s.cor || '#0019FF';
@@ -66,8 +68,14 @@ BT.live = {
                     list.appendChild(btn);
                 });
 
-                if (list.innerHTML === '') {
-                    list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text2);">Você já possui senhas para todos os serviços disponíveis.</div>';
+                // v2.5.5: Válvula de Escape - Se não há serviços sobrando, volta para o acompanhamento
+                if (visibleCount === 0 && this.tickets.length > 0) {
+                    this.showView('acompanhar');
+                    return;
+                }
+
+                if (visibleCount === 0) {
+                    list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text2);">Serviços indisponíveis no momento.</div>';
                 }
             }
         } catch (e) { list.innerHTML = 'Erro ao carregar serviços.'; }

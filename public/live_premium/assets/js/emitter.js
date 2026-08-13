@@ -70,6 +70,7 @@ BT.emitter = {
 
                 console.log("Serviços Ocultos (Ativos):", activeServiceIds);
 
+                let visibleCount = 0;
                 json.data.forEach(s => {
                     const idAtual = parseInt(s.id);
                     if (activeServiceIds.includes(idAtual)) {
@@ -77,6 +78,7 @@ BT.emitter = {
                         return; // Pula este serviço
                     }
 
+                    visibleCount++;
                     const btn = document.createElement('button');
                     btn.className = 'btn-premium-service';
                     btn.style.borderColor = s.cor || 'var(--primary)';
@@ -85,8 +87,15 @@ BT.emitter = {
                     list.appendChild(btn);
                 });
 
-                if (list.innerHTML === '') {
-                    list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text2); font-size:14px;">Você já possui senhas ativas para todos os serviços.</div>';
+                // v2.5.5: Válvula de Escape - Se não há serviços sobrando, volta para o Tracker
+                if (visibleCount === 0 && tickets.length > 0) {
+                    console.log("🚀 Todos os serviços ocupados. Retornando ao acompanhamento...");
+                    window.location.href = 'acompanhar.php?uuid=' + tickets[0].cliente_uuid;
+                    return;
+                }
+
+                if (visibleCount === 0) {
+                    list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text2); font-size:14px;">Todos os serviços de atendimento estão ocupados no momento.</div>';
                 }
             }
         } catch (e) {
