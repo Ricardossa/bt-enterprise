@@ -43,13 +43,18 @@ BT.live = {
             if (json.success) {
                 list.innerHTML = '';
 
-                // v2.3.0: Filtro de Ocultação (Só mostra serviços que eu NÃO tenho senha ativa)
-                const activeServiceIds = this.tickets.map(t => parseInt(t.servico_id));
-                console.log("Serviços ativos na memória:", activeServiceIds);
+                // v2.3.5: Filtro de Ocultação Blindado (Remove NaN e lixo da memória)
+                const activeServiceIds = this.tickets
+                    .map(t => parseInt(t.servico_id))
+                    .filter(id => !isNaN(id));
+
+                console.log("Serviços para ocultar:", activeServiceIds);
 
                 json.data.forEach(s => {
-                    if (activeServiceIds.includes(parseInt(s.id))) {
-                        return; // Pula este serviço
+                    const idAtual = parseInt(s.id);
+                    if (activeServiceIds.includes(idAtual)) {
+                        console.log("BOTÃO OCULTO ->", s.nome);
+                        return;
                     }
 
                     const btn = document.createElement('button');
@@ -81,7 +86,11 @@ BT.live = {
             });
             const json = await res.json();
             if (json.success) {
-                this.tickets.push(json.data);
+                // v2.3.5: Garante o servico_id na gravação inicial
+                const novoTicket = json.data;
+                if (!novoTicket.servico_id) novoTicket.servico_id = id;
+
+                this.tickets.push(novoTicket);
                 this.activeIndex = this.tickets.length - 1;
                 this.saveTickets();
                 this.showView('acompanhar');
