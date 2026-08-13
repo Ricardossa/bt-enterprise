@@ -61,6 +61,13 @@ $baseUrl = $protocol . $_SERVER['HTTP_HOST'] . str_replace('live_premium/acompan
             </div>
         </div>
 
+        <!-- BOTÃO ADICIONAL DIAMOND v2.4.3 -->
+        <div style="padding:0 25px 30px; margin-top:20px;">
+            <button onclick="BT.tracker.backToEmitter()" class="bt-button" style="width:100%; background:var(--sidebar); color:white; border:1px solid var(--border); padding:20px; font-weight:bold; border-radius:15px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                <i class="fa-solid fa-plus-circle" style="color:var(--accent);"></i> RETIRAR OUTRA SENHA
+            </button>
+        </div>
+
         <div id="call-alert" class="call-overlay-premium" style="display:none;">
              <h2 style="font-weight:900;">🔔 CHAMANDO!</h2>
              <h1 id="alert-guiche">GUICHÊ --</h1>

@@ -5,6 +5,8 @@
 
 window.BT = window.BT || {};
 
+console.log("🚀 DIAMOND v7.5 - EMITTER ENGINE ACTIVATED");
+
 BT.emitter = {
     currentToken: '',
     deviceUuid: '',
@@ -52,12 +54,15 @@ BT.emitter = {
             if (json.success) {
                 list.innerHTML = '';
 
-                // v2.4.1: Filtro de Ocultação Premium (Só mostra serviços que eu NÃO tenho senha ativa)
+                // v2.4.2: Filtro de Ocultação Premium Blindado (Só senhas VIVAS ocultam botões)
                 const saved = localStorage.getItem('bt_premium_tickets');
                 const tickets = saved ? JSON.parse(saved) : [];
                 const activeServiceIds = tickets
+                    .filter(t => ['AGUARDANDO','CHAMANDO','CONGELADA'].includes(t.status))
                     .map(t => parseInt(t.servico_id))
                     .filter(id => !isNaN(id));
+
+                console.log("Serviços Ocultos (Ativos):", activeServiceIds);
 
                 json.data.forEach(s => {
                     const idAtual = parseInt(s.id);

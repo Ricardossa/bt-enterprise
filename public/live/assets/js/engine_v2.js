@@ -43,12 +43,13 @@ BT.live = {
             if (json.success) {
                 list.innerHTML = '';
 
-                // v2.3.5: Filtro de Ocultação Blindado (Remove NaN e lixo da memória)
+                // v2.4.2: Filtro de Ocultação Blindado (Só senhas VIVAS ocultam botões)
                 const activeServiceIds = this.tickets
+                    .filter(t => ['AGUARDANDO','CHAMANDO','CONGELADA'].includes(t.status))
                     .map(t => parseInt(t.servico_id))
                     .filter(id => !isNaN(id));
 
-                console.log("Serviços para ocultar:", activeServiceIds);
+                console.log("Serviços Ocultos (Ativos):", activeServiceIds);
 
                 json.data.forEach(s => {
                     const idAtual = parseInt(s.id);

@@ -184,7 +184,12 @@ BT.tracker = {
     finishSession() {
         clearInterval(this.polling);
         localStorage.removeItem('bt_premium_tickets');
-        window.location.href = 'fim.php';
+        window.location.href = 'index.php?new=1';
+    },
+
+    // v2.4.3: Função para voltar à emissão sem perder o contexto de porta
+    backToEmitter() {
+        window.location.href = 'index.php';
     },
 
     async loadPromos() {

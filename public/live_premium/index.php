@@ -123,7 +123,7 @@ $estaFechado = ($agora < $abertura || $agora > $fechamento);
     </footer>
 </div>
 
-<script src="../assets/js/api.js?v=4.7"></script>
-<script src="assets/js/emitter.js?v=4.7"></script>
+<script src="../assets/js/api.js?v=7.5"></script>
+<script src="assets/js/emitter.js?v=7.5"></script>
 </body>
 </html>
