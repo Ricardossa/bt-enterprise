@@ -94,7 +94,6 @@ BT.totem = {
             });
             const json = await res.json();
             if (json.success) {
-                BT.totem.backToServices();
                 BT.totem.mostrarSenha(json.data);
                 BT.totem.dispararImpressao(json.data);
             } else {
