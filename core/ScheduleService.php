@@ -128,19 +128,7 @@ final class ScheduleService
                 throw new Exception("Limite diário: Você já possui um agendamento para este dia.");
             }
 
-            // 3. REGRA: MÁXIMO 2 VEZES POR MÊS
-            $mesContagem = Database::fetch(
-                "SELECT COUNT(*) as total FROM senhas
-                 WHERE (nome_cliente = ? OR (whatsapp = ? AND ? != ''))
-                 AND strftime('%Y-%m', data_agendamento) = ?
-                 AND status != 'CANCELADO'",
-                [$nome, $whatsappLimpo, $whatsappLimpo, $mesAno]
-            );
-            if ((int)$mesContagem['total'] >= 2) {
-                throw new Exception("Limite mensal atingido. Só é permitida a marcação de horário 2 VEZES no mês por fornecedor.");
-            }
-
-            // 4. VERIFICA DISPONIBILIDADE DO SLOT (CONCORRÊNCIA)
+            // 3. VERIFICA DISPONIBILIDADE DO SLOT (CONCORRÊNCIA)
             $check = Database::fetch(
                 "SELECT id FROM senhas WHERE servico_id = ? AND data_agendamento = ? AND status != 'CANCELADO' LIMIT 1",
                 [$servicoId, $dataHora]
