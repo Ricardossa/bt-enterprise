@@ -60,7 +60,23 @@ BT.emitter = {
             if (json.success) {
                 list.innerHTML = '';
 
-                // v2.4.2: Filtro de Ocultação Premium Blindado (Só senhas VIVAS ocultam botões)
+                // v2.6.0: Botão de Acompanhamento (Acesso Rápido)
+                if (tickets.length > 0) {
+                    const btnTrack = document.createElement('button');
+                    btnTrack.className = 'btn-premium-service';
+                    btnTrack.style.background = 'var(--primary)';
+                    btnTrack.style.color = '#fff';
+                    btnTrack.style.marginBottom = '25px';
+                    btnTrack.innerHTML = `<i class="fa-solid fa-eye" style="font-size:24px;"></i> <div>ACOMPANHE SUAS SENHAS</div>`;
+                    btnTrack.onclick = () => window.location.href = 'acompanhar.php?uuid=' + tickets[0].cliente_uuid;
+                    list.appendChild(btnTrack);
+
+                    const divider = document.createElement('div');
+                    divider.innerHTML = '<p style="font-size:10px; color:var(--text3); text-transform:uppercase; margin-bottom:15px; letter-spacing:1px;">Ou solicite um novo serviço:</p>';
+                    list.appendChild(divider);
+                }
+
+                // v2.4.2: Filtro de Ocultação Premium Blindado
                 const saved = localStorage.getItem('bt_premium_tickets');
                 const tickets = saved ? JSON.parse(saved) : [];
                 const activeServiceIds = tickets
