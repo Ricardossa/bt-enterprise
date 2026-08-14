@@ -60,7 +60,11 @@ BT.emitter = {
             if (json.success) {
                 list.innerHTML = '';
 
-                // v2.6.0: Botão de Acompanhamento (Acesso Rápido)
+                // v2.6.0: Carrega tickets para filtros e atalhos
+                const saved = localStorage.getItem('bt_premium_tickets');
+                const tickets = saved ? JSON.parse(saved) : [];
+
+                // Botão de Acompanhamento (Acesso Rápido)
                 if (tickets.length > 0) {
                     const btnTrack = document.createElement('button');
                     btnTrack.className = 'btn-premium-service';
@@ -77,8 +81,6 @@ BT.emitter = {
                 }
 
                 // v2.4.2: Filtro de Ocultação Premium Blindado
-                const saved = localStorage.getItem('bt_premium_tickets');
-                const tickets = saved ? JSON.parse(saved) : [];
                 const activeServiceIds = tickets
                     .filter(t => ['AGUARDANDO','CHAMANDO','CONGELADA'].includes(t.status))
                     .map(t => parseInt(t.servico_id))
