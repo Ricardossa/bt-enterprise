@@ -422,7 +422,7 @@ class QueueService
                  JOIN guiche_servicos gs ON s.servico_id = gs.servico_id
                  WHERE s.status IN ('AGUARDANDO', 'CONGELADA')
                  AND gs.guiche_id = ?
-                 AND s.created_at > datetime('now', '-18 hours')
+                 AND date(s.created_at) = date('now', 'localtime')
                  ORDER BY s.id",
                 [$guicheIdLogico]
             );
@@ -444,7 +444,7 @@ class QueueService
                      JOIN servicos sv ON s.servico_id = sv.id
                      WHERE s.status IN ('AGUARDANDO', 'CONGELADA')
                      AND s.servico_id = ?
-                     AND s.created_at > datetime('now', '-18 hours')
+                     AND date(s.created_at) = date('now', 'localtime')
                      ORDER BY s.id ASC",
                     [$servicoId]
                 );
@@ -489,7 +489,7 @@ class QueueService
              FROM senhas s
              LEFT JOIN guiches g ON g.id = s.guiche_id
              WHERE s.status IN ('CHAMANDO', 'FINALIZADA')
-             AND s.created_at > datetime('now', '-18 hours')
+             AND date(s.created_at) = date('now', 'localtime')
              ORDER BY s.chamada_em DESC, s.id DESC
              LIMIT ?",
             [$limit]
@@ -499,7 +499,8 @@ class QueueService
     public function getStatsPorPeriodo(?string $inicio = null, ?string $fim = null): array
     {
         if ($inicio === null) {
-            $sqlBase = "SELECT COUNT(*) as total FROM senhas WHERE created_at > datetime('now', '-18 hours')";
+            $hoje = date('Y-m-d');
+            $sqlBase = "SELECT COUNT(*) as total FROM senhas WHERE date(created_at) = '$hoje'";
             $params = [];
         } else {
             $sqlBase = "SELECT COUNT(*) as total FROM senhas WHERE date(created_at) BETWEEN ? AND ?";
