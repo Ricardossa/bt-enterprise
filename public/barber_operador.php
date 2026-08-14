@@ -150,50 +150,96 @@ $pageTitle = 'Operador de Bolso';
             },
 
             startPolling() {
-                this.sync();
-                setInterval(() => this.sync(), 3000);
-            },
+            this.sync();
+            setInterval(() => this.sync(), 3000);
+        },
 
-            async sync() {
-                if (!this.serviceId) return;
-                try {
-                    const res = await BT.api.estado(this.serviceId, this.guicheId);
-                    if (res.success) {
-                        const d = res.data;
-                        document.getElementById('total-fila').innerText = d.fila.length;
-                        document.getElementById('total-agenda').innerText = d.agendados.length;
+        lastFilaCount: 0,
+        async sync() {
+            if (!this.serviceId) return;
+            try {
+                const res = await BT.api.estado(this.serviceId, this.guicheId);
+                if (res.success) {
+                    const d = res.data;
+                    const currentFilaCount = d.fila.length;
 
-                        // Atualiza Visão (Ocupado/Livre)
-                        if (d.chamando) {
-                            this.currentId = d.chamando.id;
-                            document.getElementById('current-code').innerText = d.chamando.codigo;
-                            document.getElementById('view-busy').classList.remove('hidden');
-                            document.getElementById('view-free').classList.add('hidden');
-                        } else {
-                            this.currentId = null;
-                            document.getElementById('view-busy').classList.add('hidden');
-                            document.getElementById('view-free').classList.remove('hidden');
-                        }
-
-                        // Renderiza Próximos 3
-                        const list = document.getElementById('list-next');
-                        const next3 = d.fila.slice(0, 3);
-                        if (next3.length > 0) {
-                            list.innerHTML = next3.map((t, i) => `
-                                <div class="next-item">
-                                    <span class="idx">${i+1}º</span>
-                                    <div class="info">
-                                        <b>${t.codigo}</b>
-                                        <span>${t.status === 'CONGELADA' ? '❄️ Reservada' : 'Aguardando'}</span>
-                                    </div>
-                                </div>
-                            `).join('');
-                        } else {
-                            list.innerHTML = '<p style="color: var(--text3); text-align: center; font-size: 13px;">Ninguém na fila.</p>';
-                        }
+                    // v2.7.0: Alerta de Bolso (Vibra se entrar gente nova na fila)
+                    if (currentFilaCount > this.lastFilaCount) {
+                        this.notificarNovoCliente();
                     }
-                } catch (e) {}
-            },
+                    this.lastFilaCount = currentFilaCount;
+
+                    document.getElementById('total-fila').innerText = currentFilaCount;
+                    document.getElementById('total-agenda').innerText = d.agendados.length;
+
+                    // Atualiza Visão (Ocupado/Livre)
+                    if (d.chamando) {
+                        this.currentId = d.chamando.id;
+                        document.getElementById('current-code').innerText = d.chamando.codigo;
+                        document.getElementById('view-busy').classList.remove('hidden');
+                        document.getElementById('view-free').classList.add('hidden');
+                    } else {
+                        this.currentId = null;
+                        document.getElementById('view-busy').classList.add('hidden');
+                        document.getElementById('view-free').classList.remove('hidden');
+                    }
+
+                    // Renderiza Próximos 3 (Com suporte a Agendados)
+                    const list = document.getElementById('list-next');
+                    let nextItems = [];
+
+                    // Prioriza agendados que chegaram (PRESENTE) ou estão próximos
+                    if (d.agendados && d.agendados.length > 0) {
+                        d.agendados.slice(0, 2).forEach(a => {
+                            nextItems.push({
+                                codigo: a.codigo,
+                                info: '📅 ' + a.nome_cliente.split(' ')[0],
+                                status: a.status
+                            });
+                        });
+                    }
+
+                    // Preenche com a fila normal
+                    if (d.fila) {
+                        d.fila.slice(0, 3).forEach(f => {
+                            if (nextItems.length < 3) {
+                                nextItems.push({
+                                    codigo: f.codigo,
+                                    info: f.status === 'CONGELADA' ? '❄️ Reservada' : 'Fila Normal',
+                                    status: f.status
+                                });
+                            }
+                        });
+                    }
+
+                    if (nextItems.length > 0) {
+                        list.innerHTML = nextItems.map((t, i) => `
+                            <div class="next-item">
+                                <span class="idx">${i+1}º</span>
+                                <div class="info">
+                                    <b>${t.codigo}</b>
+                                    <span>${t.info}</span>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        list.innerHTML = '<p style="color: var(--text3); text-align: center; font-size: 13px;">Ninguém na fila.</p>';
+                    }
+                }
+            } catch (e) {}
+        },
+
+        notificarNovoCliente() {
+            console.log("🔔 NOVO CLIENTE NA FILA!");
+            if (navigator.vibrate) {
+                navigator.vibrate([300, 100, 300]); // Vibração dupla
+            }
+            try {
+                const audio = new Audio('../assets/audio/ding.mp3');
+                audio.volume = 0.5;
+                audio.play().catch(e => console.warn("Áudio bloqueado"));
+            } catch(e) {}
+        },
 
             async chamarProximo() {
                 try {
