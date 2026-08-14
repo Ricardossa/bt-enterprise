@@ -468,12 +468,14 @@ class QueueService
             'chamando' => $chamando ? [
                 'id' => $chamando['id'],
                 'codigo' => $chamando['codigo'] ?? $chamando['senha'],
+                'nome_cliente' => $chamando['nome_cliente'] ?? '',
                 'guiche' => $guicheCodigo
             ] : null,
             'fila' => array_map(function($item) {
                 return [
                     'id' => (int)$item['id'],
                     'codigo' => $item['codigo'] ?? $item['senha'],
+                    'nome_cliente' => $item['nome_cliente'] ?? '',
                     'servico_nome' => $item['servico_nome'],
                     'servico_id' => isset($item['servico_id']) ? (int)$item['servico_id'] : null,
                     'status' => $item['status']
