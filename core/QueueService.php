@@ -101,28 +101,40 @@ class QueueService
             $guicheIdFinal = null;
             $servicoId = null;
 
-            // --- CARREGA CONFIGURAÇÃO DE PRIORIDADE (v7.2 Diamond) ---
+            // --- CARREGA CONFIGURAÇÃO DE PRIORIDADE (v7.5 Diamond) ---
             $cfgRows = Database::fetchAll("SELECT chave, valor FROM configuracoes WHERE chave IN ('priority_mode', 'priority_ratio')");
             $config = ['priority_mode' => 'STRICT', 'priority_ratio' => 3];
             foreach ($cfgRows as $r) { $config[$r['chave']] = $r['valor']; }
 
-            if (!$isModoNovo) {
-                $guicheCodigoLogico = (string)$param1;
-                $guicheInfo = Database::fetch("SELECT id FROM guiches WHERE codigo = ? LIMIT 1", [$guicheCodigoLogico]);
-                if (!$guicheInfo) {
-                    Database::rollback();
-                    return ['success' => false, 'message' => 'Guichê não encontrado.'];
-                }
-                $guicheIdFinal = (int)$guicheInfo['id'];
+            // [NOVO v2.8.0] BUSCA PRIMEIRO AGENDADOS PRESENTES (No Horário)
+            $sqlAgendado = "SELECT * FROM senhas
+                            WHERE status = 'PRESENTE'
+                            AND servico_id = ?
+                            AND date(data_agendamento) = date('now', 'localtime')
+                            AND data_agendamento <= datetime('now', '+15 minutes', 'localtime')
+                            ORDER BY data_agendamento ASC LIMIT 1";
 
-                $sqlBusca = "SELECT s.* FROM senhas s
-                             JOIN guiche_servicos gs ON s.servico_id = gs.servico_id
-                             WHERE s.status = 'AGUARDANDO'
-                             AND gs.guiche_id = ?
-                             AND s.created_at > datetime('now', '-18 hours')
-                             AND (s.device_id IS NULL OR s.device_id = '' OR s.device_id NOT IN (
-                                 SELECT device_id FROM senhas WHERE status = 'CHAMANDO' AND device_id IS NOT NULL AND device_id != ''
-                             ))";
+            $senha = Database::fetch($sqlAgendado, [$isModoNovo ? $param1 : 1]); // Tenta agendado primeiro
+
+            if (!$senha) {
+                // Se não houver agendado no horário, segue a fila normal (Lógica já existente)
+                if (!$isModoNovo) {
+                    $guicheCodigoLogico = (string)$param1;
+                    $guicheInfo = Database::fetch("SELECT id FROM guiches WHERE codigo = ? LIMIT 1", [$guicheCodigoLogico]);
+                    if (!$guicheInfo) {
+                        Database::rollback();
+                        return ['success' => false, 'message' => 'Guichê não encontrado.'];
+                    }
+                    $guicheIdFinal = (int)$guicheInfo['id'];
+
+                    $sqlBusca = "SELECT s.* FROM senhas s
+                                 JOIN guiche_servicos gs ON s.servico_id = gs.servico_id
+                                 WHERE s.status = 'AGUARDANDO'
+                                 AND gs.guiche_id = ?
+                                 AND date(s.created_at) = date('now', 'localtime')
+                                 AND (s.device_id IS NULL OR s.device_id = '' OR s.device_id NOT IN (
+                                     SELECT device_id FROM senhas WHERE status = 'CHAMANDO' AND device_id IS NOT NULL AND device_id != ''
+                                 ))";
 
                 if ($config['priority_mode'] === 'BALANCED') {
                     $ratio = (int)$config['priority_ratio'];
