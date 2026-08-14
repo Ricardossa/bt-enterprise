@@ -29,13 +29,14 @@ class QueueService
             Database::begin();
 
             $agora = date('Y-m-d H:i:s');
-            // Reset diário inteligente
+            // v2.6.2: Reset Diário por Calendário (Zera exatamente à meia-noite)
+            $hoje = date('Y-m-d');
             $ultima = Database::fetch(
                 "SELECT numero FROM senhas
                  WHERE servico_id = ?
-                 AND created_at > datetime('now', '-18 hours')
+                 AND date(created_at) = ?
                  ORDER BY numero DESC LIMIT 1",
-                [$servicoId]
+                [$servicoId, $hoje]
             );
 
             $numero = $ultima ? ((int)$ultima['numero']) + 1 : 1;
