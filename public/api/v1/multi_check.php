@@ -29,7 +29,7 @@ try {
     $placeholders = implode(',', array_fill(0, count($uuids), '?'));
     $sql = "SELECT s.id, $campoCodigo as senha, s.status, s.guiche_id, s.servico_id, s.cliente_uuid,
                    sv.nome as servico_nome, sv.icone as servico_icone, sv.cor as servico_cor, sv.tempo_medio,
-                   g.nome as guiche_nome, s.created_at
+                   g.nome as guiche_nome, s.created_at, s.nome_cliente
             FROM senhas s
             LEFT JOIN servicos sv ON sv.id = s.servico_id
             LEFT JOIN guiches g ON g.id = s.guiche_id
@@ -68,6 +68,7 @@ try {
             'cliente_uuid' => $s['cliente_uuid'],
             'servico_id' => (int)$s['servico_id'], // v2.4.1: Vital para ocultação de botões
             'senha' => $s['senha'],
+            'nome_cliente' => $s['nome_cliente'] ?? '',
             'status' => $status,
             'servico' => $s['servico_nome'] ?? 'Atendimento',
             'icone' => $s['servico_icone'] ?: '📋',

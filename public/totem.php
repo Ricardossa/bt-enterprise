@@ -193,7 +193,7 @@ include __DIR__ . '/includes/header.php';
     <!-- ETAPA 1: SELEÇÃO DE SERVIÇO -->
     <div id="step-services">
         <header class="totem-header">
-            <img src="uploads/logo.png" onerror="this.src='http://api.brandaotech.com.br:8080/uploads/logo/logo.png'">
+            <img src="uploads/logo.png" onerror="this.src='http://api.brandaotech.com.br/uploads/logo/logo.png'">
             <h1>SISTEMA DE SENHAS</h1>
             <p>Toque no serviço desejado para retirar sua senha</p>
         </header>

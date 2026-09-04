@@ -137,25 +137,25 @@ BT.tv = {
         const labelBase = data?.label_cliente || 'Paciente';
 
         if (elSenha) {
-            elSenha.textContent = call.senha;
+            const textoExibido = call.nome_cliente || call.senha;
+            elSenha.textContent = textoExibido;
 
-            // --- SMART FONT SIZE (DIAMOND v2) ---
-            // Regra mais agressiva para nomes muito longos e preservação de senhas
-            const len = call.senha.length;
+            // --- SMART FONT SIZE (DIAMOND v2.1) ---
+            const len = textoExibido.length;
             if (len <= 4) {
-                elSenha.style.fontSize = '320px'; // Aumentado para IMPACTO TOTAL em senhas
-            } else if (len <= 12) {
-                elSenha.style.fontSize = '200px';
-            } else if (len <= 20) {
-                elSenha.style.fontSize = '140px';
-            } else if (len <= 30) {
-                elSenha.style.fontSize = '100px';
+                elSenha.style.fontSize = '320px';
+            } else if (len <= 15) {
+                elSenha.style.fontSize = '180px';
+            } else if (len <= 25) {
+                elSenha.style.fontSize = '120px';
+            } else if (len <= 40) {
+                elSenha.style.fontSize = '80px';
             } else {
-                elSenha.style.fontSize = '70px'; // Extremo para nomes de 35+ caracteres
+                elSenha.style.fontSize = '60px';
             }
         }
 
-        if (elGuiche) elGuiche.textContent = call.guiche_nome || "ATENDIMENTO";
+        if (elGuiche) elGuiche.textContent = call.guiche_nome || call.guiche || "ATENDIMENTO";
 
         // Ajusta rótulo hospitalar e PRIORIDADE
         if (elLabel) {
@@ -188,8 +188,10 @@ BT.tv = {
             if (!this.isVozHabilitada) return resolve();
 
             const labelBase = data?.label_cliente || 'Paciente';
-            const prefixo = call.is_hospital ? labelBase : 'Senha';
-            const texto = `${prefixo} ${call.senha}, dirigir-se ao ${call.guiche_nome}`;
+            const prefixo = (call.is_hospital || call.nome_cliente) ? labelBase : 'Senha';
+            const nomeFalado = call.nome_cliente || call.senha || '';
+            const local = call.guiche_nome || call.guiche || 'Atendimento';
+            const texto = `${prefixo} ${nomeFalado}, dirigir-se ao ${local}`;
 
             // --- CANAL 1: PONTE NATIVA ANDROID (ALTA PERFORMANCE) ---
             if (typeof AndroidVoz !== 'undefined') {
@@ -222,12 +224,18 @@ BT.tv = {
     },
 
     abbreviateName(name) {
-        if (!name || name.length <= 18) return name;
-        const parts = name.split(' ');
-        if (parts.length < 2) return name.substring(0, 18);
+        if (!name) return "";
+        const cleanName = String(name).replace(/\s+/g, ' ').trim();
+        if (cleanName.length <= 18) return cleanName;
+
+        const parts = cleanName.split(' ');
+        if (parts.length < 2) return cleanName.substring(0, 18);
+
         const first = parts[0];
         const last = parts[parts.length - 1];
-        return `${first} ${parts[1][0]}. ${last}`; // Ex: ROBERTO D. PRADO
+        const middleInitial = (parts[1] && parts[1][0]) ? parts[1][0] + '.' : '';
+
+        return `${first} ${middleInitial} ${last}`.replace(/\s+/g, ' ').trim();
     },
 
     updateUI(data) {
@@ -246,14 +254,16 @@ BT.tv = {
         this.lastHistoryHash = currentHash;
 
         elHistory.innerHTML = data.historico.map(h => {
-            const isName = h.senha.length > 6;
-            const displayName = isName ? this.abbreviateName(h.senha) : h.senha;
+            const valSenha = h.senha ? String(h.senha) : "";
+            const isName = valSenha.length > 6;
+            const displayName = isName ? this.abbreviateName(valSenha) : valSenha;
             const fontSize = isName ? '24px' : '36px';
+            const local = h.guiche_nome || h.guiche || '--';
 
             return `
                 <li class="history-item animate__animated animate__fadeInRight">
                     <span class="history-ticket" style="font-size: ${fontSize};">${displayName}</span>
-                    <span class="history-guiche">${h.guiche_nome}</span>
+                    <span class="history-guiche">${local}</span>
                 </li>
             `;
         }).join('');

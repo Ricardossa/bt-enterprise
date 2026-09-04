@@ -90,7 +90,11 @@ BT.totem = {
             const res = await fetch(BT.totem.apiSenhas, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ servico_id: parseInt(id), tipo: tipo })
+                body: JSON.stringify({
+                    servico_id: parseInt(id),
+                    tipo: tipo,
+                    t: this.currentToken // [v7.7.3] Envia token para validar o Totem FÃ­sico
+                })
             });
             const json = await res.json();
             if (json.success) {
@@ -135,8 +139,8 @@ BT.totem = {
             base = window.location.origin + pastaBase;
         }
 
-        // Garante que a barra final esteja correta e aponta para o mobile
-        let pathMobile = "live_premium/index.php"; // Removido o ?new=1 para preservar múltiplas senhas
+        // Garante que a barra final esteja correta e aponta para o mobile (Fidelidade/Check-in)
+        let pathMobile = "fidelidade/index.php";
         if (this.currentToken) {
             pathMobile += "?t=" + this.currentToken;
         }

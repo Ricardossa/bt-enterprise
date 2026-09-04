@@ -38,10 +38,10 @@ try {
                 ], JSON_UNESCAPED_UNICODE);
 
             } else {
-
+                $servicos = $service->listar();
                 echo json_encode([
                     'success' => true,
-                    'data' => $service->listar()
+                    'data' => $servicos
                 ], JSON_UNESCAPED_UNICODE);
 
             }
@@ -58,7 +58,11 @@ try {
                 trim($input['icone'] ?? ''),
                 trim($input['cor'] ?? ''),
                 (int)($input['ordem'] ?? 0),
-                (int)($input['tempo_medio'] ?? 0)
+                (int)($input['tempo_medio'] ?? 0),
+                (float)($input['preco'] ?? 0),
+                (int)($input['promo_ativa'] ?? 0),
+                (float)($input['promo_desconto'] ?? 20.00),
+                (string)($input['promo_dias'] ?? '[1,2,3]')
             );
 
             echo json_encode(
@@ -79,7 +83,11 @@ try {
                 trim($input['icone'] ?? ''),
                 trim($input['cor'] ?? ''),
                 (int)($input['ordem'] ?? 0),
-                (int)($input['tempo_medio'] ?? 0)
+                (int)($input['tempo_medio'] ?? 0),
+                (float)($input['preco'] ?? 0),
+                (int)($input['promo_ativa'] ?? 0),
+                (float)($input['promo_desconto'] ?? 20.00),
+                (string)($input['promo_dias'] ?? '[1,2,3]')
             );
 
             echo json_encode(

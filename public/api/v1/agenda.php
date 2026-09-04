@@ -166,15 +166,45 @@ try {
         exit;
     }
 
-    // 5. REALIZAR CHECK-IN (PÚBLICO NO TOTEM)
+    // 5. REALIZAR CHECK-IN (PÃšBLICO NO TOTEM)
     if ($method === 'POST' && $action === 'checkin') {
         $input = json_decode(file_get_contents('php://input'), true);
         $query = strtoupper(trim((string)($input['query'] ?? '')));
         $hoje = date('Y-m-d');
 
-        if (!$query) throw new Exception("Digite seu nome ou código.");
+        $userLat = (float)($input['lat'] ?? 0);
+        $userLng = (float)($input['lng'] ?? 0);
 
-        // Busca agendamento para HOJE que ainda não foi atendido
+        if (!$query) throw new Exception("Digite seu nome ou cÃ³digo.");
+
+        // [v7.7.0] CERCA DE GPS NO CHECK-IN
+        $configCoords = Database::fetchAll("SELECT chave, valor FROM configuracoes WHERE chave IN ('location_lat', 'location_lng', 'location_max_distance', 'location_check_enabled')");
+        $loc = [];
+        foreach ($configCoords as $cc) { $loc[$cc['chave']] = $cc['valor']; }
+
+        if (($loc['location_check_enabled'] ?? '0') === '1' && !empty($loc['location_lat'])) {
+            $maxDist = (int)($loc['location_max_distance'] ?? 150);
+
+            if ($userLat === 0.0 || $userLng === 0.0) {
+                echo json_encode(['success' => false, 'message' => '📍 LOCALIZAÇÃO NECESSÁRIA: Permita o acesso ao GPS para confirmar sua chegada.']);
+                exit;
+            }
+
+            $earthRadius = 6371000;
+            $latFrom = deg2rad((float)$loc['location_lat']);
+            $lonFrom = deg2rad((float)$loc['location_lng']);
+            $latTo = deg2rad($userLat);
+            $lonTo = deg2rad($userLng);
+            $angle = 2 * asin(sqrt(pow(sin(($latTo - $latFrom) / 2), 2) + cos($latFrom) * cos($latTo) * pow(sin(($lonTo - $lonFrom) / 2), 2)));
+            $distance = $angle * $earthRadius;
+
+            if ($distance > $maxDist) {
+                echo json_encode(['success' => false, 'message' => "âŒ VOCÃŠ ESTÃ MUITO LONGE: Sua distÃ¢ncia atual Ã© de " . round($distance) . "m. Chegue mais perto da unidade para fazer o check-in."]);
+                exit;
+            }
+        }
+
+        // Busca agendamento para HOJE que ainda nÃ£o foi atendido
         $agendamento = Database::fetch(
             "SELECT * FROM senhas
              WHERE status IN ('AGENDADO', 'PRESENTE')

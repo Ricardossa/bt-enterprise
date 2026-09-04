@@ -1,0 +1,158 @@
+<?php
+
+declare(strict_types=1);
+
+namespace BTQueue\Core;
+
+use Exception;
+
+/**
+ * Motor de Integracao de Inteligencia Artificial - BT Diamond AI
+ * Conecta a Enterprise ao cerebro local no TrueNAS Xeon.
+ */
+final class AIService
+{
+    private string $ollamaUrl;
+    private string $model = 'qwen2.5:3b';
+
+    public function __construct()
+    {
+        try {
+            // Busca a URL da IA configurada no banco
+            $config = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'ai_url' LIMIT 1");
+            $this->ollamaUrl = $config ? $config['valor'] : 'http://192.168.100.139:11434/api/generate';
+        } catch (\Throwable $e) {
+            // Fallback se o banco falhar
+            $this->ollamaUrl = 'http://192.168.100.139:11434/api/generate';
+        }
+    }
+
+    /**
+     * Envia uma pergunta ou conjunto de dados para a IA e recebe um Insight.
+     */
+    public function ask(string $prompt, bool $isDataAnalysis = false): string
+    {
+        try {
+            $context = $isDataAnalysis
+                ? "Voce e o analista de produtividade da Brandao Tech. Analise os seguintes dados de fila e seja conciso no diagnostico: "
+                : "";
+
+            $payload = json_encode([
+                'model' => $this->model,
+                'prompt' => $context . $prompt,
+                'stream' => false,
+                'options' => [
+                    'num_predict' => 300,
+                    'temperature' => 0.3
+                ]
+            ]);
+
+            $ch = curl_init($this->ollamaUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 120);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            if ($response === false || $error !== '') {
+                throw new Exception("Falha de comunicacao com a IA: " . $error);
+            }
+
+            if ($httpCode !== 200) {
+                throw new Exception("IA fora de area (HTTP $httpCode)");
+            }
+
+            $json = json_decode($response, true);
+
+            if (!is_array($json)) {
+                throw new Exception("Resposta invalida da IA.");
+            }
+
+            return $json['response'] ?? "O cerebro nao soube responder.";
+
+        } catch (\Throwable $e) {
+            Logger::error("Falha na ponte AI: " . $e->getMessage());
+            return "Erro ao consultar a Inteligencia Artificial.";
+        }
+    }
+
+    /**
+     * Gera um resumo automatico de produtividade do dia para o Gerente.
+     */
+    public function generateDailyReport(array $stats): string
+    {
+        $emitidas = (int)($stats['emitidas'] ?? 0);
+        $chamadas = (int)($stats['chamadas'] ?? 0);
+        $finalizadas = (int)($stats['finalizadas'] ?? 0);
+        $pendentes = (int)($stats['pendentes'] ?? 0);
+
+        $taxaConclusao = (int)($stats['taxa_conclusao'] ?? (
+            $emitidas > 0 ? round(($finalizadas / $emitidas) * 100) : 0
+        ));
+
+        $esperaMedia = (int)($stats['espera_media'] ?? 0);
+        $pico = $stats['pico_movimento'] ?? 'Não disponível';
+        $horarioPico = $stats['horario_pico'] ?? $pico;
+        $totalAtendentes = (int)($stats['total_atendentes'] ?? 0);
+        $melhorOperador = $stats['melhor_operador'] ?? 'Não disponível';
+        $tempoAtendimento = (int)($stats['tempo_atendimento'] ?? 0);
+        $servicoLento = $stats['servico_mais_lento'] ?? 'Não disponível';
+
+        $prompt = <<<PROMPT
+Você é o AI Core do BT Queue Enterprise da Brandão Tech.
+
+Analise SOMENTE os dados fornecidos abaixo.
+
+DADOS OPERACIONAIS DE HOJE:
+- Senhas emitidas: {$emitidas}
+- Senhas chamadas: {$chamadas}
+- Senhas finalizadas: {$finalizadas}
+- Senhas pendentes: {$pendentes}
+- Taxa de conclusão: {$taxaConclusao}%
+- Pico de movimento: {$pico}
+- Horário do pico: {$horarioPico}
+- Espera média até a chamada: {$esperaMedia} minutos
+- Total de atendentes identificados: {$totalAtendentes}
+- Melhor operador por quantidade de atendimentos finalizados: {$melhorOperador}
+- Tempo médio de atendimento: {$tempoAtendimento} minutos
+- Serviço com maior tempo médio emissão → finalização: {$servicoLento}
+
+REGRAS OBRIGATÓRIAS:
+1. Não invente funcionários, faltas, causas, gargalos, tempos ou eventos.
+2. Uma senha pendente NÃO significa falta de funcionário.
+3. Não diga que existe problema de produtividade sem evidência nos dados.
+4. O melhor operador significa APENAS maior quantidade de atendimentos finalizados. Não significa que seja o melhor profissional.
+5. Não atribua causa para uma espera elevada se a causa não estiver nos dados.
+6. Não confunda espera com tempo de atendimento.
+7. Espera média significa tempo entre emissão e chamada.
+8. Tempo médio de atendimento significa tempo entre chamada e finalização.
+9. Serviço mais lento é baseado no tempo médio entre emissão e finalização.
+10. Não trate o pico de movimento como problema. Ele apenas mostra o horário com maior quantidade de emissões.
+11. Não faça recomendações genéricas.
+12. Toda recomendação deve estar diretamente relacionada a um dado observado.
+13. Se os dados forem insuficientes para determinar uma causa, diga claramente: "Os dados disponíveis não permitem determinar a causa."
+14. Não repita todos os dados desnecessariamente.
+15. Seja objetivo e profissional.
+
+Responda EXATAMENTE neste formato:
+
+SITUACAO:
+[Resumo objetivo dos fatos observados.]
+
+ATENCAO:
+[Somente pontos que realmente merecem atenção com base nos dados.]
+
+RECOMENDACAO:
+[Ação específica baseada nos dados. Se não houver ação específica justificável, informe que os dados são insuficientes para recomendar uma ação.]
+
+PROMPT;
+
+        return $this->ask($prompt, false);
+    }
+}

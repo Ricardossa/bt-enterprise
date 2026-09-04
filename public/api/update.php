@@ -20,10 +20,13 @@ try {
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $dados = json_decode(file_get_contents('php://input'), true) ?: [];
-        $releaseId = filter_var($dados['release_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        if (!$releaseId) {
-            throw new Exception('Release OTA invalido.');
+        $rawInput = file_get_contents('php://input');
+        $dados = json_decode($rawInput, true) ?: $_POST;
+
+        $releaseId = (int)($dados['release_id'] ?? 0);
+
+        if ($releaseId <= 0) {
+            throw new Exception("ID de atualizaÃ§Ã£o invÃ¡lido ($releaseId).");
         }
 
         echo json_encode($service->applyRelease($releaseId), JSON_UNESCAPED_UNICODE);

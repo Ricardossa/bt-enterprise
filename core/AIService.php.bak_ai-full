@@ -1,0 +1,190 @@
+<?php
+
+declare(strict_types=1);
+
+namespace BTQueue\Core;
+
+use Exception;
+
+/**
+ * Motor de Integracao de Inteligencia Artificial - BT Diamond AI
+ * Conecta a Enterprise ao cerebro local no TrueNAS Xeon.
+ */
+final class AIService
+{
+    private string $ollamaUrl;
+    private string $model = 'qwen2.5:3b';
+
+    public function __construct()
+    {
+        try {
+            // Busca a URL da IA configurada no banco
+            $config = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'ai_url' LIMIT 1");
+            $this->ollamaUrl = $config ? $config['valor'] : 'http://192.168.100.139:11434/api/generate';
+        } catch (\Throwable $e) {
+            // Fallback se o banco falhar
+            $this->ollamaUrl = 'http://192.168.100.139:11434/api/generate';
+        }
+    }
+
+    /**
+     * Envia uma pergunta ou conjunto de dados para a IA e recebe um Insight.
+     */
+    public function ask(string $prompt, bool $isDataAnalysis = false): string
+    {
+        try {
+            $context = $isDataAnalysis
+                ? "Voce e o analista de produtividade da Brandao Tech. Analise os seguintes dados de fila e seja conciso no diagnostico: "
+                : "";
+
+            $payload = json_encode([
+                'model' => $this->model,
+                'prompt' => $context . $prompt,
+                'stream' => false,
+                'options' => [
+                    'num_predict' => 300,
+                    'temperature' => 0.3
+                ]
+            ]);
+
+            $ch = curl_init($this->ollamaUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            if ($response === false || $error !== '') {
+                throw new Exception("Falha de comunicacao com a IA: " . $error);
+            }
+
+            if ($httpCode !== 200) {
+                throw new Exception("IA fora de area (HTTP $httpCode)");
+            }
+
+            $json = json_decode($response, true);
+
+            if (!is_array($json)) {
+                throw new Exception("Resposta invalida da IA.");
+            }
+
+            return $json['response'] ?? "O cerebro nao soube responder.";
+
+        } catch (\Throwable $e) {
+            Logger::error("Falha na ponte AI: " . $e->getMessage());
+            return "Erro ao consultar a Inteligencia Artificial.";
+        }
+    }
+
+    /**
+     * Gera um resumo automatico de produtividade do dia para o Gerente.
+     */
+    public function generateDailyReport(array $stats): string
+    {
+        $emitidas = (int)($stats['emitidas'] ?? 0);
+        $chamadas = (int)($stats['chamadas'] ?? 0);
+        $finalizadas = (int)($stats['finalizadas'] ?? 0);
+        $pendentes = (int)($stats['pendentes'] ?? 0);
+        $esperaMedia = (int)($stats['espera_media'] ?? 0);
+        $melhorOperador = $stats['melhor_operador'] ?? 'Nao disponivel';
+        $totalAtendentes = (int)($stats['total_atendentes'] ?? 0);
+        $picoMovimento = $stats['pico_movimento'] ?? 'Nao disponivel';
+        $servicoLento = $stats['servico_mais_lento'] ?? 'Nao disponivel';
+
+        $taxaConclusao = $emitidas > 0 ? round(($finalizadas / $emitidas) * 100, 1) : 0;
+
+        // Se nao houver dados, resposta rapida
+        if ($emitidas === 0) {
+            return "SITUACAO:\nNenhuma senha emitida hoje.\n\nATENCAO:\nSem dados para analise.\n\nRECOMENDACAO:\nAguardar movimentacao.";
+        }
+
+        // Se houver poucos dados, usa analise local (mais rapido)
+        if ($emitidas <= 5) {
+            return $this->analiseLocal($emitidas, $chamadas, $finalizadas, $pendentes, $taxaConclusao, $esperaMedia, $melhorOperador);
+        }
+
+        // Para mais dados, usa IA
+        $prompt = <<<PROMPT
+Voce e o AI Core do BT Queue Enterprise da Brandao Tech.
+
+Analise SOMENTE os dados fornecidos abaixo.
+
+DADOS DA OPERACAO:
+- Senhas emitidas: {$emitidas}
+- Senhas chamadas: {$chamadas}
+- Senhas finalizadas: {$finalizadas}
+- Senhas pendentes: {$pendentes}
+- Taxa de conclusao: {$taxaConclusao}%
+- Espera media: {$esperaMedia} min
+- Melhor operador: {$melhorOperador}
+- Total de atendentes: {$totalAtendentes}
+- Pico de movimento: {$picoMovimento}
+- Servico mais lento: {$servicoLento}
+
+REGRAS OBRIGATORIAS:
+1. Nao invente funcionarios, faltas, causas, gargalos ou tempos.
+2. Senha pendente NAO significa falta de funcionario.
+3. Nao considere a diferenca entre emitidas e finalizadas como "faltas".
+4. Nao diga que existe problema de produtividade sem dados que comprovem isso.
+5. Nao invente motivos para uma senha estar pendente.
+6. Se os dados nao permitirem determinar uma causa, diga claramente que a causa nao pode ser determinada.
+7. Nao faca recomendacoes genericas.
+8. Seja curto, objetivo e profissional.
+9. Responda exatamente nos tres blocos abaixo.
+
+SITUACAO:
+Descreva somente o que os numeros comprovam.
+
+ATENCAO:
+Informe somente o que merece acompanhamento com base nos dados. Se nao houver evidencia de um problema especifico, diga isso.
+
+RECOMENDACAO:
+Indique somente uma acao diretamente relacionada aos dados disponiveis. Se nao houver dados suficientes para recomendar uma acao especifica, diga isso.
+
+PROMPT;
+
+        return $this->ask($prompt, true);
+    }
+
+    private function analiseLocal($emitidas, $chamadas, $finalizadas, $pendentes, $taxaConclusao, $esperaMedia, $melhorOperador): string
+    {
+        $relatorio = "SITUACAO:\n";
+        $relatorio .= "{$emitidas} senhas emitidas, {$finalizadas} finalizadas, {$pendentes} pendentes.\n";
+        $relatorio .= "Taxa de conclusao: {$taxaConclusao}%\n";
+        $relatorio .= "Espera media: {$esperaMedia} min\n";
+        
+        $relatorio .= "\nATENCAO:\n";
+        if ($pendentes > 0) {
+            $relatorio .= "{$pendentes} senha(s) aguardando atendimento.\n";
+        } else {
+            $relatorio .= "Todas as senhas foram finalizadas.\n";
+        }
+        
+        if ($esperaMedia > 60) {
+            $relatorio .= "Tempo de espera elevado ({$esperaMedia}min).\n";
+        }
+        
+        if ($melhorOperador != 'Nao disponivel') {
+            $relatorio .= "Melhor operador: {$melhorOperador}.\n";
+        }
+        
+        $relatorio .= "\nRECOMENDACAO:\n";
+        if ($pendentes > 0) {
+            $relatorio .= "Priorizar o atendimento das {$pendentes} senha(s) pendentes.";
+        } else {
+            $relatorio .= "Manter o ritmo de atendimento.";
+        }
+        
+        if ($esperaMedia > 60) {
+            $relatorio .= " Reduzir tempo de espera.";
+        }
+        
+        return $relatorio;
+    }
+}

@@ -31,6 +31,14 @@ $estaFechado = ($agora < $abertura || $agora > $fechamento);
     <link rel="stylesheet" href="assets/css/premium.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <script>
+        // [v7.7.4] Força Identificação de Fornecedores (Enterprise Only)
+        if (!localStorage.getItem('bt_loyalty_uuid')) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('t');
+            window.location.href = '../fidelidade/index.php' + (token ? '?t=' + token : '');
+        }
+    </script>
 </head>
 <body>
 
@@ -119,11 +127,11 @@ $estaFechado = ($agora < $abertura || $agora > $fechamento);
 
     <footer class="footer-signature">
         <p>Desenvolvido por</p>
-        <img src="http://api.brandaotech.com.br:8080/uploads/logo/logo.png" alt="Brandão Tech">
+        <img src="http://api.brandaotech.com.br/uploads/logo/logo.png" alt="Brandão Tech">
     </footer>
 </div>
 
-<script src="../assets/js/api.js?v=7.5.3"></script>
-<script src="assets/js/emitter.js?v=7.5.3"></script>
+<script src="../assets/js/api.js?v=7.8.9"></script>
+<script src="assets/js/emitter.js?v=7.8.9"></script>
 </body>
 </html>

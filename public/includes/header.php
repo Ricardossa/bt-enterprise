@@ -74,6 +74,10 @@ $isAdmin = Auth::isAdmin();
                 <i class="fa-solid fa-briefcase"></i> Serviços
             </a>
 
+            <a href="clientes.php">
+                <i class="fa-solid fa-truck-ramp-box"></i> Fornecedores
+            </a>
+
             <?php if (LicenseManager::hasFeature('hybrid_scheduling')): ?>
             <a href="gerenciar_agenda.php">
                 <i class="fa-solid fa-calendar-check"></i> Gerenciar Agenda

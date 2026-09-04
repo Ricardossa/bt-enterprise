@@ -23,7 +23,7 @@ class QueueService
         return array_column($res->fetchAll(PDO::FETCH_ASSOC), 'name');
     }
 
-    public function emitir(string $prefixo, int $servicoId, string $clienteUuid, ?string $deviceId = null, string $tipo = 'NORMAL'): array
+    public function emitir(string $prefixo, int $servicoId, string $clienteUuid, ?string $deviceId = null, string $tipo = 'NORMAL', string $nomeCliente = '', int $clienteId = 0): array
     {
         try {
             Database::begin();
@@ -47,17 +47,26 @@ class QueueService
 
             $uuid = bin2hex(random_bytes(16));
 
+            // [v7.8.9] Cálculo de Preço Promo (Fonte da Verdade)
+            $calc = ServicoService::getPrecoVigente($servicoId);
+            $valorTotal = $calc['preco'];
+            $isPromo = $calc['is_promo'];
+
             $cols = $this->getTableColumns('senhas');
 
             $data = [
                 'uuid' => $uuid,
                 'cliente_uuid' => $clienteUuid,
+                'cliente_id' => $clienteId, // [v7.6.0]
                 'servico_id' => $servicoId,
                 'numero' => $numero,
                 'prefixo' => $prefixo,
                 'tipo_atendimento' => $tipo,
                 'status' => 'AGUARDANDO',
+                'valor_total' => $valorTotal, // [v7.8.9]
+                'is_promo' => $isPromo ? 1 : 0, // [v7.8.9]
                 'device_id' => $deviceId,
+                'nome_cliente' => $nomeCliente, // [v7.6.0]
                 'created_at' => $agora,
                 'emitida_em' => $agora
             ];
@@ -469,7 +478,9 @@ class QueueService
                 'id' => $chamando['id'],
                 'codigo' => $chamando['codigo'] ?? $chamando['senha'],
                 'nome_cliente' => $chamando['nome_cliente'] ?? '',
-                'guiche' => $guicheCodigo
+                'is_hospital' => !empty($chamando['nome_cliente']),
+                'guiche' => $guicheCodigo,
+                'guiche_nome' => $guicheCodigo // [v7.6.2] Aliasing para compatibilidade JS
             ] : null,
             'fila' => array_map(function($item) {
                 return [

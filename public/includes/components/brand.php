@@ -45,7 +45,14 @@ try {
     $empresa = $config['empresa'] ?? 'BT Queue Enterprise';
 } catch (Throwable $e) {}
 
-// 2. LOGO ADMIN (URL Atômica)
-$logoPath = dirname(__DIR__, 2) . '/uploads/logo.png';
-$logoExiste = is_file($logoPath);
-$logoUrl = $logoExiste ? $baseUrl . 'uploads/logo.png?v=' . filemtime($logoPath) : '';
+// 2. LOGO ADMIN (URL Atômica - Blindada contra Portas)
+$logoRelativa = $config['logo_url'] ?? 'uploads/logo.png';
+$logoPath = dirname(__DIR__, 2) . '/' . ltrim($logoRelativa, '/');
+
+if (is_file($logoPath)) {
+    $logoUrl = $baseUrl . ltrim($logoRelativa, '/') . '?v=' . filemtime($logoPath);
+    $logoExiste = true;
+} else {
+    $logoUrl = '';
+    $logoExiste = false;
+}

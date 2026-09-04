@@ -60,7 +60,9 @@ try {
         foreach ($estado['historico'] as &$item) {
             $item['is_hospital'] = !empty($item['nome_cliente']);
             if ($item['is_hospital']) {
-                $item['senha'] = $item['nome_cliente']; // Força o nome no lugar da senha
+                $item['senha'] = (string)$item['nome_cliente']; // ForÃ§a o nome no lugar da senha
+            } else {
+                $item['senha'] = (string)$item['senha'];
             }
         }
     } catch (Exception $e) {

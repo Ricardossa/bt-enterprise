@@ -146,6 +146,7 @@ BT.tracker = {
                     </div>
                     <div class="ticket-white-box">
                         <div class="ticket-number">${t.senha}</div>
+                        ${t.nome_cliente ? `<div style="font-size:18px; font-weight:900; color:var(--primary); margin-bottom:10px; text-transform:uppercase;">${t.nome_cliente}</div>` : ''}
                         <p class="ticket-msg">${msg}</p>
 
                         <div class="grid-stats">

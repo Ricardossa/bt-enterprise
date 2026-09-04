@@ -24,7 +24,8 @@ include __DIR__ . '/includes/header.php';
 <tr>
 
 <th>Código</th>
-<th>Nome</th>
+<th>Serviço</th>
+<th>Valor</th>
 <th>Ações</th>
 
 </tr>

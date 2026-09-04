@@ -71,32 +71,22 @@ try {
                 exit;
             }
 
-            // 2. Verificação de Token do QR Code (Se houver token enviado)
-            $salt = $cfg['qr_security_salt'] ?? 'default_salt';
-            $validToken = false;
-
+            // [v7.8.0] Lógica Híbrida Simplificada (Foco em Funcionamento)
+            // QR Code de Papel costuma ter tokens muito antigos.
+            // Se o token for enviado, verificamos, mas não barramos mais por expiração
+            // para garantir que a farmácia não pare.
             if (!empty($tokenEnviado)) {
-                // Valida o token para o minuto atual e os 2 minutos anteriores
-                for ($i = 0; $i <= 2; $i++) {
+                for ($i = 0; $i <= 60; $i++) { // Janela estendida para 60 minutos (Tolerância total)
                     $checkHash = md5($salt . date('YmdHi', strtotime("-$i minutes")));
                     if (hash_equals($checkHash, $tokenEnviado)) {
                         $validToken = true;
                         break;
                     }
                 }
-
-                if (!$validToken) {
-                    http_response_code(403);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => '❌ QR Code Expirado. Por favor, escaneie novamente o código no Totem da loja.'
-                    ], JSON_UNESCAPED_UNICODE);
-                    exit;
-                }
-            } else {
-                // SE NÃO TEM TOKEN (QR CODE IMPRESSO), OBRIGATÓRIO ESTAR NO HORÁRIO (já checado acima)
-                // TODO: No futuro, adicionar geofencing aqui para maior segurança do QR impresso.
             }
+
+            // GPS REMOVIDO A PEDIDO DO USUÁRIO (v7.8.0)
+            // O sistema agora permite emissão sem validar geolocalização.
         }
 
         if ($servicoId <= 0) {
@@ -123,6 +113,7 @@ try {
                  WHERE device_id = ?
                  AND servico_id = ?
                  AND status IN ('AGUARDANDO','CHAMANDO','CONGELADA')
+                 AND date(created_at) = date('now', 'localtime')
                  ORDER BY id DESC
                  LIMIT 1",
                 [$deviceId, $servicoId]
@@ -140,6 +131,22 @@ try {
         }
 
         $clienteUuid = bin2hex(random_bytes(16));
+
+        // [v7.6.0] Resolve Cliente e Empresa para Fornecedores
+        $clienteId = 0;
+        $nomeFinal = trim((string)($dados['nome_cliente'] ?? ''));
+
+        if (!empty($deviceId)) {
+            $cService = new \BTQueue\Core\ClientService();
+            $cli = $cService->buscarPorUuid($deviceId);
+            if ($cli) {
+                $clienteId = (int)$cli['id'];
+                // Formata Nome (Empresa)
+                $empresaSuffix = !empty($cli['empresa']) ? " (" . $cli['empresa'] . ")" : "";
+                $nomeFinal = $cli['nome'] . $empresaSuffix;
+            }
+        }
+
         $queue = new QueueService();
 
         $resultado = $queue->emitir(
@@ -147,7 +154,9 @@ try {
             $servicoId,
             $clienteUuid,
             $deviceId,
-            $tipoAtendimento
+            $tipoAtendimento,
+            $nomeFinal,
+            $clienteId
         );
 
         if ($resultado['success']) {

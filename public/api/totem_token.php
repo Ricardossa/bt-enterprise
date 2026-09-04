@@ -8,7 +8,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 try {
     $config = Database::fetch("SELECT valor FROM configuracoes WHERE chave = 'qr_security_salt'");
-    $salt = $config['valor'] ?? 'default_salt';
+    $salt = $config['valor'] ?? 'brandao_tech_2026';
 
     // O token é um hash do salt + minuto atual
     // Mudamos a cada minuto para evitar que o link salvo funcione por muito tempo

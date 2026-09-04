@@ -1,0 +1,170 @@
+<?php
+// public/api/ai_insight.php - API que gera insights (VERSÃO CORRIGIDA)
+
+require_once __DIR__ . '/../../core/Config.php';
+require_once __DIR__ . '/../../core/Database.php';
+require_once __DIR__ . '/../../core/Logger.php';
+require_once __DIR__ . '/../../core/AIService.php';
+
+header('Content-Type: application/json');
+
+try {
+    // Busca dados do dia
+    $hoje = date('Y-m-d');
+    
+    // 🔥 DADOS BÁSICOS (COM OS NOMES CORRETOS DAS COLUNAS)
+    $emitidas = (int)BTQueue\Core\Database::fetch(
+        "SELECT COUNT(*) as total FROM senhas WHERE DATE(emitida_em) = '{$hoje}'"
+    )['total'] ?? 0;
+    
+    $chamadas = (int)BTQueue\Core\Database::fetch(
+        "SELECT COUNT(*) as total FROM senhas WHERE DATE(chamada_em) = '{$hoje}' AND status = 'chamada'"
+    )['total'] ?? 0;
+    
+    $finalizadas = (int)BTQueue\Core\Database::fetch(
+        "SELECT COUNT(*) as total FROM senhas WHERE DATE(finalizada_em) = '{$hoje}' AND status = 'finalizada'"
+    )['total'] ?? 0;
+    
+    $pendentes = (int)BTQueue\Core\Database::fetch(
+        "SELECT COUNT(*) as total FROM senhas WHERE DATE(emitida_em) = '{$hoje}' AND status = 'pendente'"
+    )['total'] ?? 0;
+    
+    // 🔥 DADOS ADICIONAIS
+    
+    // 1. Pico de Movimento
+    $horarioPico = 'Não disponível';
+    try {
+        $picoMovimento = BTQueue\Core\Database::fetch(
+            "SELECT strftime('%H', emitida_em) as hora, COUNT(*) as total 
+             FROM senhas 
+             WHERE DATE(emitida_em) = '{$hoje}' 
+             GROUP BY hora 
+             ORDER BY total DESC 
+             LIMIT 1"
+        );
+        $horarioPico = $picoMovimento ? $picoMovimento['hora'] . 'h' : 'Não disponível';
+    } catch (\Throwable $e) {
+        // Ignora erro
+    }
+    
+    // 2. Melhor Operador (atendente_nome)
+    $nomeMelhorOperador = 'Não disponível';
+    $totalMelhorOperador = 0;
+    try {
+        $melhorOperador = BTQueue\Core\Database::fetch(
+            "SELECT atendente_nome, COUNT(*) as total 
+             FROM senhas 
+             WHERE DATE(finalizada_em) = '{$hoje}' 
+             AND atendente_nome IS NOT NULL AND atendente_nome != '' 
+             GROUP BY atendente_nome 
+             ORDER BY total DESC 
+             LIMIT 1"
+        );
+        $nomeMelhorOperador = $melhorOperador ? $melhorOperador['atendente_nome'] : 'Não disponível';
+        $totalMelhorOperador = $melhorOperador ? $melhorOperador['total'] : 0;
+    } catch (\Throwable $e) {
+        // Ignora erro
+    }
+    
+    // 3. Tempo Médio de Espera (usando emitida_em e chamada_em)
+    $mediaEspera = 0;
+    try {
+        $esperaMedia = BTQueue\Core\Database::fetch(
+            "SELECT AVG((julianday(chamada_em) - julianday(emitida_em)) * 24 * 60) as media 
+             FROM senhas 
+             WHERE DATE(emitida_em) = '{$hoje}' 
+             AND chamada_em IS NOT NULL"
+        );
+        $mediaEspera = round($esperaMedia['media'] ?? 0);
+    } catch (\Throwable $e) {
+        // Ignora erro
+    }
+    
+    // 4. Serviço Mais Lento (usando servico_id)
+    $nomeServicoLento = 'Não disponível';
+    $tempoServicoLento = 0;
+    try {
+        $servicoLento = BTQueue\Core\Database::fetch(
+            "SELECT s.nome as servico, 
+                    AVG((julianday(finalizada_em) - julianday(emitida_em)) * 24 * 60) as media 
+             FROM senhas sen 
+             LEFT JOIN servicos s ON sen.servico_id = s.id
+             WHERE DATE(emitida_em) = '{$hoje}' 
+             AND finalizada_em IS NOT NULL 
+             AND sen.servico_id IS NOT NULL
+             GROUP BY sen.servico_id 
+             ORDER BY media DESC 
+             LIMIT 1"
+        );
+        $nomeServicoLento = $servicoLento ? $servicoLento['servico'] : 'Não disponível';
+        $tempoServicoLento = $servicoLento ? round($servicoLento['media']) : 0;
+    } catch (\Throwable $e) {
+        // Ignora erro
+    }
+    
+    // 5. Total de Atendentes
+    $totalAtendentes = 0;
+    try {
+        $totalAtendentes = (int)BTQueue\Core\Database::fetch(
+            "SELECT COUNT(DISTINCT atendente_nome) as total 
+             FROM senhas 
+             WHERE DATE(finalizada_em) = '{$hoje}' 
+             AND atendente_nome IS NOT NULL AND atendente_nome != ''"
+        )['total'] ?? 0;
+    } catch (\Throwable $e) {
+        // Ignora erro
+    }
+    
+    // 6. Tempo Médio de Atendimento
+    $mediaAtendimento = 0;
+    try {
+        $tempoAtendimento = BTQueue\Core\Database::fetch(
+            "SELECT AVG((julianday(finalizada_em) - julianday(chamada_em)) * 24 * 60) as media 
+             FROM senhas 
+             WHERE DATE(chamada_em) = '{$hoje}' 
+             AND finalizada_em IS NOT NULL"
+        );
+        $mediaAtendimento = round($tempoAtendimento['media'] ?? 0);
+    } catch (\Throwable $e) {
+        // Ignora erro
+    }
+
+    // 🔥 MONTA O ARRAY COM OS DADOS DISPONÍVEIS
+    $stats = [
+        'emitidas' => $emitidas,
+        'chamadas' => $chamadas,
+        'finalizadas' => $finalizadas,
+        'pendentes' => $pendentes,
+        'pico_movimento' => $horarioPico,
+        'horario_pico' => $horarioPico,
+        'espera_media' => $mediaEspera,
+        'total_atendentes' => $totalAtendentes,
+        'melhor_operador' => $nomeMelhorOperador != 'Não disponível' 
+            ? $nomeMelhorOperador . " ({$totalMelhorOperador} senhas)" 
+            : 'Não disponível',
+        'tempo_atendimento' => $mediaAtendimento,
+        'servico_mais_lento' => $nomeServicoLento != 'Não disponível' 
+            ? $nomeServicoLento . " ({$tempoServicoLento}min)" 
+            : 'Não disponível',
+    ];
+    
+    // Instancia a IA
+    $service = new BTQueue\Core\AIService();
+    
+    // Gera o insight
+    $resultado = $service->generateDailyReport($stats);
+    
+    // Retorna como JSON
+    echo json_encode([
+        'success' => true,
+        'insight' => $resultado,
+        'dados' => $stats
+    ], JSON_UNESCAPED_UNICODE);
+    
+} catch (\Throwable $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage(),
+        'insight' => "SITUAÇÃO:\nErro ao gerar insight.\n\nATENÇÃO:\n" . $e->getMessage() . "\n\nRECOMENDAÇÃO:\nVerifique os logs do sistema."
+    ], JSON_UNESCAPED_UNICODE);
+}

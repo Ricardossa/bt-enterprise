@@ -27,7 +27,10 @@ final class UpdateService
 
     public function check(): array
     {
-        $checkUrl = preg_replace('~/sync\.php$~', '/updates_check.php', $this->masterUrl) . '?v=' . rawurlencode($this->getCurrentVersion());
+        // [v7.7.1] Identifica o produto para a Master (FarmÃ¡cia)
+        $produto = 'BT_QUEUE_ENTERPRISE';
+        $checkUrl = preg_replace('~/sync\.php$~', '/updates_check.php', $this->masterUrl) . '?v=' . rawurlencode($this->getCurrentVersion()) . '&p=' . $produto;
+
         $ch = curl_init($checkUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
@@ -37,12 +40,17 @@ final class UpdateService
         curl_close($ch);
 
         if ($httpCode !== 200 || !is_string($response)) {
-            Logger::error("Falha ao consultar Master para updates (HTTP $httpCode)", [], 'update');
-            throw new Exception("Falha ao consultar Master (HTTP $httpCode)");
+            return ['update_available' => false, 'error' => "Master Offline ($httpCode)"];
         }
 
         $json = json_decode($response, true);
-        return isset($json['data']) ? $json['data'] : ($json ?? ['update_available' => false]);
+
+        // Normaliza a resposta da Master (JsonResponse wrapper)
+        if (isset($json['success']) && $json['success'] === true && isset($json['data'])) {
+            return $json['data'];
+        }
+
+        return $json ?? ['update_available' => false];
     }
 
     public function applyRelease(int $releaseId): array
@@ -52,16 +60,21 @@ final class UpdateService
         ini_set('memory_limit', '512M');
 
         $manifest = $this->check();
-        if (empty($manifest['update_available']) || (int) ($manifest['release_id'] ?? 0) !== $releaseId) {
-            throw new Exception('O release solicitado nao esta disponivel na Master.');
+
+        // [v7.7.2] ToleraÃ§Ã£o de ID: Se a Master diz que hÃ¡ update, aceita o ID enviado pelo Dashboard
+        if (empty($manifest['update_available'])) {
+            throw new Exception('Nenhuma atualizaÃ§Ã£o pendente na Master para esta unidade.');
         }
 
         $hash = (string) ($manifest['sha256'] ?? '');
         if (!preg_match('/^[a-f0-9]{64}$/i', $hash)) {
-            throw new Exception('Manifesto OTA invalido.');
+            throw new Exception('Manifesto de integridade invÃ¡lido na Master.');
         }
 
-        return $this->update($this->buildDownloadUrl($releaseId), $hash);
+        // Se o releaseId for zero ou invÃ¡lido, usa o ID que veio no manifesto fresco
+        $targetId = ($releaseId > 0) ? $releaseId : (int)($manifest['release_id'] ?? 0);
+
+        return $this->update($this->buildDownloadUrl($targetId), $hash);
     }
 
     private function update(string $url, string $expectedHash): array

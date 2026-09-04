@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace BTQueue\Core;
 
-use BTQueue\Core\MasterSync\LicenseManager;
 use PDO;
 
 class Auth
@@ -21,28 +20,7 @@ class Auth
 
         $db = Database::getInstance();
 
-        // 1. Verifica se a licença está bloqueada (Trava MasterSync)
-        $checkLic = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='licencas'")->fetch();
-        if ($checkLic) {
-            $licenseManager = new LicenseManager();
-
-            // Refinamento: Só bloqueia se o status for diferente de ATIVA.
-            // Se for ATIVA e o ano for 2027, ignora atrasos de sincronia para permitir login.
-            $licData = $db->query("SELECT status, validade FROM licencas LIMIT 1")->fetch();
-            if ($licData && strtoupper((string)$licData['status']) !== 'ATIVA') {
-                throw new \Exception("Acesso negado: Licença suspensa ou bloqueada.");
-            }
-
-            if ($licenseManager->isBlocked()) {
-                try {
-                    ActivityService::log('CRITICAL', 'SYSTEM', "Tentativa de login bloqueada: Licença inválida.", [], $login);
-                } catch (\Throwable $e) {}
-
-                throw new \Exception("Acesso negado: Licença suspensa ou expirada.");
-            }
-        }
-
-        // 2. Busca o operador
+        // 1. Busca o operador
         $operador = Database::fetch(
             "SELECT o.*, g.nome AS guiche_nome, s.nome AS servico_nome
              FROM operadores o
@@ -56,7 +34,7 @@ class Auth
              throw new \Exception("Usuário não encontrado ou inativo.");
         }
 
-        // 3. Valida Senha
+        // 2. Valida Senha
         $senhaBanco = $operador['senha'];
         $valida = false;
 
@@ -74,7 +52,7 @@ class Auth
             throw new \Exception("Senha incorreta.");
         }
 
-        // 4. Grava Sessão com Nível de Acesso
+        // 3. Grava Sessão com Nível de Acesso
         $_SESSION['operador'] = [
             'id'            => (int)$operador['id'],
             'nome'          => $operador['nome'],
@@ -89,7 +67,7 @@ class Auth
         try {
             ActivityService::log('INFO', 'SYSTEM', "Login realizado: {$operador['nome']} (" . $_SESSION['operador']['nivel'] . ")", [], $operador['nome']);
         } catch (\Throwable $e) {
-            // Se o log falhar, nÃ£o impede o login do usuÃ¡rio
+            // Se o log falhar, não impede o login do usuário
         }
 
         return true;
@@ -128,16 +106,6 @@ class Auth
         if (!self::autenticado()) {
             self::erroAPI(401, 'Sessão expirada ou não autorizada.');
         }
-
-        // Validação Offline-First de Licença em tempo real
-        $licenseManager = new LicenseManager();
-        if ($licenseManager->isBlocked()) {
-            self::erroAPI(403, 'Licença inválida ou suspensa. Contate o suporte.');
-        }
-
-        if ($nivelExigido === 'ADMIN' && !self::isAdmin()) {
-            self::erroAPI(403, 'Acesso restrito a administradores.');
-        }
     }
 
     /**
@@ -150,15 +118,7 @@ class Auth
             exit;
         }
 
-        // Validação Offline-First de Licença em tempo real
-        $licenseManager = new LicenseManager();
-        if ($licenseManager->isBlocked()) {
-            header('Location: login.php?msg=licenca_invalida');
-            exit;
-        }
-
         if ($nivelExigido === 'ADMIN' && !self::isAdmin()) {
-            // Se for operador tentando entrar em área admin, joga para o guichê
             header('Location: operador.php?msg=acesso_negado');
             exit;
         }

@@ -4,7 +4,7 @@
 
 -- 1. CONFIGURAÇÕES PADRÃO
 INSERT OR IGNORE INTO configuracoes (chave, valor, tipo, descricao) VALUES
-('master_url', 'http://api.brandaotech.com.br:8080/api/v1/sync.php', 'STRING', 'URL de sincronização com a Platform Master'),
+('master_url', 'http://api.brandaotech.com.br/api/v1/sync.php', 'STRING', 'URL de sincronização com a Platform Master'),
 ('app_name', 'BT Queue Enterprise', 'STRING', 'Nome da aplicação local'),
 ('offline_limit_days', '7', 'INT', 'Dias permitidos de operação sem sincronização');
 

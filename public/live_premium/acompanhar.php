@@ -102,7 +102,7 @@ $baseUrl = $protocol . $_SERVER['HTTP_HOST'] . str_replace('live_premium/acompan
 
     <footer class="footer-signature">
         <p>Desenvolvido por</p>
-        <img src="http://api.brandaotech.com.br:8080/uploads/logo/logo.png" alt="Brandão Tech">
+        <img src="http://api.brandaotech.com.br/uploads/logo/logo.png" alt="Brandão Tech">
     </footer>
 </div>
 

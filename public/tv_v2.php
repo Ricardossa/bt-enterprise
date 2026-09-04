@@ -57,7 +57,7 @@ $logoUrl = file_exists(__DIR__ . '/' . $logoLocal) ? $logoLocal : 'assets/img/lo
     </div>
 
     <!-- SCRIPTS -->
-    <script src="assets/js/tv_premium.js"></script>
+    <script src="assets/js/tv_premium.js?v=7.6.2&t=<?= time() ?>"></script>
 
 </body>
 </html>

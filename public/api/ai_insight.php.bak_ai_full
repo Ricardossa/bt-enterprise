@@ -1,0 +1,138 @@
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../../bootstrap.php';
+
+use BTQueue\Core\AIService;
+use BTQueue\Core\QueueService;
+use BTQueue\Core\Database;
+
+header('Content-Type: application/json; charset=utf-8');
+
+try {
+
+    /*
+     * ============================================================
+     * DADOS PRINCIPAIS DA FILA
+     * Usa o mesmo QueueService utilizado pelo restante do Enterprise.
+     * Isso evita divergência de status e regras entre o relatório e a IA.
+     * ============================================================
+     */
+    $queue = new QueueService();
+    $stats = $queue->getStatsPorPeriodo();
+
+    $emitidas    = (int)($stats['emitidas'] ?? 0);
+    $chamadas    = (int)($stats['chamadas'] ?? 0);
+    $finalizadas = (int)($stats['finalizadas'] ?? 0);
+    $pendentes   = (int)($stats['pendentes'] ?? 0);
+
+    /*
+     * ============================================================
+     * TAXA DE CONCLUSÃO
+     * ============================================================
+     */
+    $taxaConclusao = $emitidas > 0
+        ? round(($finalizadas / $emitidas) * 100)
+        : 0;
+
+    /*
+     * ============================================================
+     * TEMPO MÉDIO DE ESPERA
+     * Somente senhas que já foram chamadas.
+     * ============================================================
+     */
+    $esperaMedia = 0;
+
+    try {
+        $resultado = Database::fetch(
+            "SELECT AVG(
+                (julianday(chamada_em) - julianday(emitida_em)) * 24 * 60
+             ) AS media
+             FROM senhas
+             WHERE date(created_at) = date('now', 'localtime')
+             AND chamada_em IS NOT NULL"
+        );
+
+        $esperaMedia = (int)round($resultado['media'] ?? 0);
+
+    } catch (\Throwable $e) {
+        $esperaMedia = 0;
+    }
+
+    /*
+     * ============================================================
+     * PICO DE MOVIMENTO
+     * ============================================================
+     */
+    $horarioPico = 'Não disponível';
+
+    try {
+        $pico = Database::fetch(
+            "SELECT strftime('%H', created_at) AS hora,
+                    COUNT(*) AS total
+             FROM senhas
+             WHERE date(created_at) = date('now', 'localtime')
+             GROUP BY hora
+             ORDER BY total DESC
+             LIMIT 1"
+        );
+
+        if ($pico) {
+            $horarioPico = $pico['hora'] . 'h';
+        }
+
+    } catch (\Throwable $e) {
+        $horarioPico = 'Não disponível';
+    }
+
+    /*
+     * ============================================================
+     * MONTA OS DADOS PARA A IA
+     * ============================================================
+     */
+    $dadosIA = [
+        'emitidas'        => $emitidas,
+        'chamadas'        => $chamadas,
+        'finalizadas'     => $finalizadas,
+        'pendentes'       => $pendentes,
+        'taxa_conclusao'  => $taxaConclusao,
+        'espera_media'    => $esperaMedia,
+        'pico_movimento'  => $horarioPico
+    ];
+
+    /*
+     * ============================================================
+     * IA
+     * ============================================================
+     */
+    $service = new AIService();
+
+    $resultado = $service->generateDailyReport($dadosIA);
+
+    /*
+     * ============================================================
+     * RESPOSTA
+     * ============================================================
+     */
+    echo json_encode([
+        'success' => true,
+        'insight' => $resultado,
+        'dados'   => $dadosIA
+    ], JSON_UNESCAPED_UNICODE);
+
+} catch (\Throwable $e) {
+
+    http_response_code(500);
+
+    echo json_encode([
+        'success' => false,
+        'error'   => $e->getMessage(),
+        'insight' => 'SITUAÇÃO:' . PHP_EOL .
+                     'Não foi possível gerar a análise.' . PHP_EOL . PHP_EOL .
+                     'ATENÇÃO:' . PHP_EOL .
+                     'O serviço de inteligência apresentou uma falha.' . PHP_EOL . PHP_EOL .
+                     'RECOMENDAÇÃO:' . PHP_EOL .
+                     'Verifique o serviço de Inteligência Artificial local.'
+    ], JSON_UNESCAPED_UNICODE);
+}

@@ -134,12 +134,13 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // --- DETECÇÃO INTELIGENTE DE AMBIENTE ---
-        let pathMobile = "/live_premium/index.php";
+        // --- DETECÇÃO INTELIGENTE DE AMBIENTE (v7.7.4) ---
+        // Na Enterprise, o QR Code DEVE apontar para a Fidelidade (Identificação)
+        let pathMobile = "/fidelidade/index.php";
 
         // Se a URL atual tiver o padrão de diretórios da Master, mantemos o prefixo
         if (window.location.pathname.includes("/painel_v4/public/")) {
-            pathMobile = "/painel_v4/public/live_premium/index.php";
+            pathMobile = "/painel_v4/public/fidelidade/index.php";
         }
 
         const destino = base.replace(/\/$/, "") + pathMobile;
@@ -184,7 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </head>
             <body>
                 <div class="placa">
-                    <img src="http://api.brandaotech.com.br:8080/uploads/logo/logo.png" class="logo-bt">
+                    <img src="http://api.brandaotech.com.br/uploads/logo/logo.png" class="logo-bt">
                     <h1>RETIRE SUA SENHA</h1>
                     <p>Escaneie o código abaixo para escolher o serviço e retirar sua senha diretamente no seu celular.</p>
                     <div class="qr-box"><img src="${qrImg.src}"></div>

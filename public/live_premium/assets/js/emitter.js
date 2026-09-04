@@ -12,8 +12,10 @@ BT.emitter = {
     deviceUuid: '',
 
     async init() {
-        // --- GESTÃO DE IDENTIDADE ÚNICA (UUID PERSISTENTE) ---
-        this.deviceUuid = localStorage.getItem('bt_device_uuid');
+        // --- GESTÃƒO DE IDENTIDADE ÃšNICA (UUID PERSISTENTE) ---
+        // [v7.6.0] Prioridade para o UUID de IdentificaÃ§Ã£o (Fornecedores)
+        this.deviceUuid = localStorage.getItem('bt_loyalty_uuid') || localStorage.getItem('bt_device_uuid');
+
         if (!this.deviceUuid) {
             this.deviceUuid = typeof crypto.randomUUID === 'function'
                 ? crypto.randomUUID()
@@ -92,15 +94,29 @@ BT.emitter = {
                 json.data.forEach(s => {
                     const idAtual = parseInt(s.id);
                     if (activeServiceIds.includes(idAtual)) {
-                        console.log("PREMIUM: Ocultando serviço ativo:", s.nome);
-                        return; // Pula este serviço
+                        console.log("PREMIUM: Ocultando serviÃ§o ativo:", s.nome);
+                        return; // Pula este serviÃ§o
                     }
 
                     visibleCount++;
                     const btn = document.createElement('button');
                     btn.className = 'btn-premium-service';
                     btn.style.borderColor = s.cor || 'var(--primary)';
-                    btn.innerHTML = `<span>${s.icone}</span> <div>${s.nome}</div>`;
+
+                    const isPromo = s.is_promo_today;
+                    const precoExibido = parseFloat(s.current_price || 0).toFixed(2);
+                    const precoAntigo = parseFloat(s.preco_original || 0).toFixed(2);
+
+                    btn.innerHTML = `
+                        <span>${s.icone}</span>
+                        <div>
+                            ${s.nome}
+                            <div style="font-size:12px; color:var(--secondary); font-weight:800; margin-top:5px;">
+                                ${isPromo ? `<small style="text-decoration:line-through; opacity:0.5; margin-right:5px;">R$ ${precoAntigo}</small>` : ''}
+                                R$ ${precoExibido}
+                            </div>
+                        </div>
+                    `;
                     btn.onclick = () => BT.emitter.selectService(s.id);
                     list.appendChild(btn);
                 });
@@ -161,6 +177,21 @@ BT.emitter = {
         const btns = document.querySelectorAll('#step-priority button');
         btns.forEach(b => b.disabled = true);
 
+        // [v7.7.0] Captura GPS para Cerca EletrÃ´nica
+        let userLocation = { lat: 0, lng: 0 };
+        try {
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 5000
+                });
+            });
+            userLocation.lat = position.coords.latitude;
+            userLocation.lng = position.coords.longitude;
+        } catch (e) {
+            console.warn("GPS negado ou falhou.");
+        }
+
         try {
             const res = await fetch('../api/senhas.php', {
                 method: 'POST',
@@ -169,7 +200,9 @@ BT.emitter = {
                     servico_id: id,
                     device_id: this.deviceUuid,
                     t: this.currentToken,
-                    tipo: tipo
+                    tipo: tipo,
+                    lat: userLocation.lat,
+                    lng: userLocation.lng
                 })
             });
             const json = await res.json();
@@ -212,11 +245,25 @@ BT.emitter = {
         const btn = document.getElementById('btn-do-checkin');
         btn.disabled = true; btn.innerText = "PROCESSANDO...";
 
+        // [v7.7.0] Captura GPS para Cerca EletrÃ´nica no Check-in
+        let userLocation = { lat: 0, lng: 0 };
+        try {
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+            });
+            userLocation.lat = position.coords.latitude;
+            userLocation.lng = position.coords.longitude;
+        } catch (e) {}
+
         try {
             const res = await fetch('../api/v1/agenda.php?action=checkin', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ query: query })
+                body: JSON.stringify({
+                    query: query,
+                    lat: userLocation.lat,
+                    lng: userLocation.lng
+                })
             });
             const json = await res.json();
 

@@ -56,21 +56,35 @@ BT.servicos = {
             return;
         }
 
-        tbody.innerHTML = dados.map(servico => `
+        tbody.innerHTML = dados.map(servico => {
+            const isPromoAtiva = servico.promo_ativa == 1;
+            const diasPromo = JSON.parse(servico.promo_dias || '[]');
+            const diaHoje = new Date().getDay();
+            const valeHoje = isPromoAtiva && diasPromo.includes(diaHoje);
+
+            let promoHtml = '';
+            if (isPromoAtiva) {
+                const corBadge = valeHoje ? 'var(--success)' : 'var(--text3)';
+                promoHtml = `<br><span class="badge" style="background:rgba(29, 180, 255, 0.1); color:${corBadge}; font-size:9px; margin-top:5px;">💎 ${servico.promo_desconto}% OFF</span>`;
+            }
+
+            return `
             <tr id="linha-servico-${servico.id}">
                 <td><strong>${servico.codigo}</strong></td>
                 <td>
                     <span class="mr-2" style="color: ${servico.cor || '#1565C0'}">${servico.icone || '📋'}</span>
                     ${servico.nome}
+                    ${promoHtml}
                 </td>
+                <td style="color:var(--success); font-weight:900;">R$ ${parseFloat(servico.preco || 0).toFixed(2)}</td>
                 <td><span class="badge bg-secondary">${servico.prefixo}</span></td>
                 <td>${parseInt(servico.tempo_medio || 10)} min</td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-info mr-1" onclick="BT.servicos.editar(${servico.id})">✏️ Editar</button>
+                    <button class="btn btn-sm btn-info mr-1" onclick="BT.servicos.editar(${servico.id})">✏️ Configurar</button>
                     <button class="btn btn-sm btn-danger" onclick="BT.servicos.excluir(${servico.id})">🗑️ Excluir</button>
                 </td>
             </tr>
-        `).join('');
+        `}).join('');
     },
 
     novo() {
@@ -122,7 +136,11 @@ BT.servicos = {
             icone: document.getElementById('modal_icone').value.trim(),
             cor: document.getElementById('modal_cor').value,
             ordem: parseInt(document.getElementById('modal_ordem').value) || 0,
-            tempo_medio: parseInt(document.getElementById('modal_tempo_medio').value) || 10
+            tempo_medio: parseInt(document.getElementById('modal_tempo_medio').value) || 10,
+            preco: parseFloat(document.getElementById('modal_preco').value) || 0,
+            promo_ativa: document.getElementById('modal_promo_ativa').checked ? 1 : 0,
+            promo_desconto: parseFloat(document.getElementById('modal_promo_desconto').value) || 0,
+            promo_dias: JSON.stringify(Array.from(document.querySelectorAll('.promo-day-check:checked')).map(el => parseInt(el.value)))
         };
 
         if (idElement && idElement.value) {
@@ -213,6 +231,53 @@ BT.servicos = {
                     <label for="modal_tempo_medio" class="form-label font-weight-bold">Tempo Médio (minutos)</label>
                     <input type="number" id="modal_tempo_medio" class="form-control" value="${dados.tempo_medio || 10}" min="1" required>
                 </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label font-weight-bold">Valor do Serviço (R$)</label>
+                    <input type="number" id="modal_preco" class="form-control" value="${dados.preco || 0}" step="0.01" min="0" required style="font-weight:900; color:var(--success);">
+                </div>
+
+                <div class="card p-3" style="background: rgba(29, 180, 255, 0.05); border: 1px dashed var(--secondary); border-radius: 15px; margin-top: 10px;">
+                    <div class="custom-control custom-switch mb-3">
+                        <input type="checkbox" class="custom-control-input" id="modal_promo_ativa" ${dados.promo_ativa == 1 ? 'checked' : ''}>
+                        <label class="custom-control-label font-weight-bold" for="modal_promo_ativa" style="color:var(--secondary);">💎 ATIVAR PREÇO PROMOCIONAL (DIAMOND)</label>
+                    </div>
+
+                    <div id="section-promo-details" style="${dados.promo_ativa == 1 ? '' : 'display:none;'}">
+                        <div class="form-group mb-3">
+                            <label class="form-label">Porcentagem de Desconto (%)</label>
+                            <input type="number" id="modal_promo_desconto" class="form-control" value="${dados.promo_desconto || 20}" step="0.5" min="0" max="100">
+                        </div>
+
+                        <label class="form-label font-weight-bold d-block mb-2">Dias Ativos:</label>
+                        <div class="d-flex flex-wrap gap-2" style="gap:10px;">
+                            ${[
+                                {v:1, l:'Seg'}, {v:2, l:'Ter'}, {v:3, l:'Qua'},
+                                {v:4, l:'Qui'}, {v:5, l:'Sex'}, {v:6, l:'Sáb'}, {v:0, l:'Dom'}
+                            ].map(d => {
+                                const diasAtivos = JSON.parse(dados.promo_dias || '[1,2,3]');
+                                const checked = diasAtivos.includes(d.v) ? 'checked' : '';
+                                return `
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input promo-day-check" type="checkbox" id="day-${d.v}" value="${d.v}" ${checked}>
+                                        <label class="form-check-label" for="day-${d.v}" style="font-size:12px;">${d.l}</label>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    setTimeout(() => {
+                        const switchEl = document.getElementById('modal_promo_ativa');
+                        if (switchEl) {
+                            switchEl.addEventListener('change', function() {
+                                document.getElementById('section-promo-details').style.display = this.checked ? 'block' : 'none';
+                            });
+                        }
+                    }, 500);
+                </script>
             </form>
         `;
     }

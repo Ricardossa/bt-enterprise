@@ -44,7 +44,11 @@ echo json_encode(
     $queue->emitir(
         $prefixo,
         $servicoId,
-        $clienteUuid
+        $clienteUuid,
+        null,
+        'NORMAL',
+        (string)($dados['nome_cliente'] ?? ''),
+        (int)($dados['cliente_id'] ?? 0)
     ),
     JSON_UNESCAPED_UNICODE
 );

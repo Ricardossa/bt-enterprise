@@ -68,16 +68,23 @@ try {
         );
     }
 
-    // 4. GARANTE COLUNAS NOVAS EM TABELAS EXISTENTES
+    // 4. GARANTE COLUNAS NOVAS EM TABELAS EXISTENTES (v7.6.0)
     $migrations = [
+        'clientes' => [
+            'empresa' => 'TEXT',
+            'whatsapp' => 'TEXT'
+        ],
         'senhas' => [
+            'cliente_id' => 'INTEGER DEFAULT 0',
             'nome_cliente' => 'TEXT',
             'atendente_nome' => 'TEXT',
             'tipo_atendimento' => "TEXT DEFAULT 'NORMAL'",
             'data_agendamento' => 'DATETIME',
             'emitida_em' => 'DATETIME',
             'whatsapp' => 'TEXT',
-            'cancel_token' => 'TEXT'
+            'cancel_token' => 'TEXT',
+            'valor_total' => 'DECIMAL(10,2) DEFAULT 0.00',
+            'is_promo' => 'INTEGER DEFAULT 0'
         ],
         'configuracoes' => [
             'label_cliente' => "TEXT DEFAULT 'Paciente'"
@@ -90,6 +97,19 @@ try {
             'liberacao_dia_semana' => 'INTEGER NULL',
             'liberacao_hora_inicio' => "TEXT DEFAULT '00:00'",
             'liberacao_hora_fim' => "TEXT DEFAULT '23:59'"
+        ],
+        'servicos' => [
+            'preco' => 'DECIMAL(10,2) DEFAULT 0.00',
+            'promo_ativa' => 'INTEGER DEFAULT 0',
+            'promo_desconto' => 'DECIMAL(5,2) DEFAULT 20.00',
+            'promo_dias' => 'TEXT'
+        ],
+        'senhas' => [
+            'valor_total' => 'DECIMAL(10,2) DEFAULT 0.00',
+            'is_promo' => 'INTEGER DEFAULT 0'
+        ],
+        'configuracoes' => [
+            'qr_security_salt' => "TEXT DEFAULT 'brandao_tech_2026'"
         ]
     ];
 
@@ -117,21 +137,15 @@ try {
         AND chamada_em > datetime('now', 'localtime', '+5 minutes')
     ");
 
-    // 4. AUTO-SELO DE HARDWARE (MIGRAÇÃO DE SEGURANÇA)
-    $lic = Database::fetch("SELECT * FROM licencas LIMIT 1");
-    if ($lic && empty($lic['assinatura']) && class_exists('BTQueue\Core\SecurityService')) {
-        $hwid = SecurityService::getHardwareId();
-        $sig = SecurityService::signData([
-            'uuid' => $lic['uuid'],
-            'status' => $lic['status'],
-            'validade' => $lic['validade']
-        ], $lic['token']);
-
-        Database::execute(
-            "UPDATE licencas SET hardware_id = ?, assinatura = ? WHERE id = ?",
-            [$hwid, $sig, $lic['id']]
-        );
-    }
+    // [v7.8.1] LIMPEZA SUPREMA: Finaliza senhas "esquecidas" de dias anteriores
+    Database::execute("
+        UPDATE senhas
+        SET status = 'FINALIZADA',
+            finalizada_em = datetime('now', 'localtime'),
+            updated_at = datetime('now', 'localtime')
+        WHERE status IN ('AGUARDANDO', 'CHAMANDO', 'CONGELADA', 'ATENDIMENTO')
+        AND date(created_at) < date('now', 'localtime')
+    ");
 
 } catch (Exception $e) {
     if (class_exists('BTQueue\Core\Logger')) {

@@ -278,11 +278,11 @@ document.getElementById('btnSolicitarAI').onclick = async () => {
     box.classList.add('hidden');
 
     try {
-        const res = await fetch('api/ai_insight.php');
+        const res = await fetch('/enterprise/api/ai_insight.php');
         const json = await res.json();
 
         if (json.success) {
-            content.innerText = json.analise;
+            content.innerText = json.insight;
             box.classList.remove('hidden');
         } else {
             alert(json.message || "O cérebro está ocupado no momento.");
