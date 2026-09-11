@@ -7,11 +7,11 @@ set -e
 
 APP_NAME="BT Queue Enterprise"
 INSTALL_DIR="/var/www/html/btqueue"
-MASTER_IP="192.168.100.245"
+MASTER_DOMAIN="api.brandaotech.com.br"
 # URLs Oficiais
-FULL_URL="http://$MASTER_IP:8080/bt-enterprise.zip"
-CHECK_URL="http://$MASTER_IP:8080/api/v1/updates_check.php"
-DOWNLOAD_URL="http://$MASTER_IP:8080/api/v1/updates_download.php"
+FULL_URL="https://$MASTER_DOMAIN/bt-enterprise.zip"
+CHECK_URL="https://$MASTER_DOMAIN/api/v1/updates_check.php"
+DOWNLOAD_URL="https://$MASTER_DOMAIN/api/v1/updates_download.php"
 
 ZIP_FILE="/tmp/bt-package.zip"
 
